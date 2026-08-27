@@ -1,0 +1,36 @@
+{
+ "engine": "speakerkit",
+ "modelIdentifier": "speakerkit/pyannote-community-1",
+ "intervals": [
+  {
+   "start": 1.2,
+   "end": 8.12,
+   "speaker": "SPEAKER_01"
+  },
+  {
+   "start": 8.57,
+   "end": 17.03,
+   "speaker": "SPEAKER_00"
+  },
+  {
+   "start": 17.48,
+   "end": 24.02,
+   "speaker": "SPEAKER_01"
+  },
+  {
+   "start": 24.47,
+   "end": 31.78,
+   "speaker": "SPEAKER_00"
+  },
+  {
+   "start": 32.23,
+   "end": 33.83,
+   "speaker": "SPEAKER_01"
+  },
+  {
+   "start": 34.28,
+   "end": 42.36,
+   "speaker": "SPEAKER_00"
+  }
+ ]
+}

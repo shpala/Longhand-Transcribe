@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Partial plist merged into the generated one (same arrangement as
+	     Longhand/Info.plist on iOS). CFBundleDocumentTypes is an array of
+	     dictionaries and cannot be expressed as an INFOPLIST_KEY_* build
+	     setting, which is why this file exists. -->
+	<!-- SHA-256 via CryptoKit only; exempt under the encryption rules,
+	     declared so App Store Connect stops asking at every upload. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Recording</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.audio</string>
+				<string>public.mpeg-4-audio</string>
+				<string>public.mp3</string>
+				<string>com.microsoft.waveform-audio</string>
+				<string>com.apple.coreaudio-format</string>
+				<string>public.movie</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Recorder Capture</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.shpala.longhand.hda</string>
+			</array>
+		</dict>
+	</array>
+	<!-- HiDock's headerless MPEG stream has no system type; declare it so the
+	     files can be opened at all (§5.5). -->
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.shpala.longhand.hda</string>
+			<key>UTTypeDescription</key>
+			<string>HiDock Recording</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>hda</string>
+					<string>hta</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>

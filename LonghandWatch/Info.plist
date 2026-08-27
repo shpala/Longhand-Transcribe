@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Partial plist merged into the generated one. Handoff needs the
+	     activity type declared on both sides or it silently never fires;
+	     NSUserActivityTypes is an array and has no INFOPLIST_KEY_* form. -->
+	<!-- The watch-face complication opens longhand://record to start a take.
+	     Registered so the scheme is the app's rather than merely working by
+	     virtue of the widget being ours. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.shpala.Longhand.watch</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>longhand</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>com.shpala.Longhand.library</string>
+	</array>
+</dict>
+</plist>

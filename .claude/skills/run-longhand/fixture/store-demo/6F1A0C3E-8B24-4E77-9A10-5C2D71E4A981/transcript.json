@@ -1,0 +1,104 @@
+{
+ "recordingID": "6F1A0C3E-8B24-4E77-9A10-5C2D71E4A981",
+ "sourceHash": "00000000000000000000000000000000000000000000000075587e1d91cdb80a",
+ "duration": 71.13,
+ "language": "en",
+ "pipelineVersion": "1.1.0",
+ "models": {
+  "asr": "whisperkit/large-v3-v20240930_626MB",
+  "diarization": "speakerkit/pyannote-community-1"
+ },
+ "mergeParams": {
+  "boundaryToleranceMs": 250,
+  "turnGapSeconds": 1
+ },
+ "speakers": {
+  "SPEAKER_00": {
+   "displayName": "Me",
+   "confirmedByUser": true
+  },
+  "SPEAKER_01": {
+   "displayName": "Dana",
+   "matchScore": 0.83,
+   "confirmedByUser": true
+  },
+  "SPEAKER_02": {
+   "displayName": "Yuval",
+   "matchScore": 0.71
+  }
+ },
+ "turns": [
+  {
+   "id": 0,
+   "cluster": "SPEAKER_00",
+   "speaker": "Me",
+   "start": 1.2,
+   "end": 9.28,
+   "overlapped": false,
+   "text": "Alright, we said we would come back to the onboarding screen once the copy was settled, so let us start there."
+  },
+  {
+   "id": 1,
+   "cluster": "SPEAKER_01",
+   "speaker": "Dana",
+   "start": 9.73,
+   "end": 17.42,
+   "overlapped": false,
+   "text": "The copy is settled. What is not settled is whether the permission prompt comes before or after the first recording."
+  },
+  {
+   "id": 2,
+   "cluster": "SPEAKER_02",
+   "speaker": "Yuval",
+   "start": 17.87,
+   "end": 25.18,
+   "overlapped": false,
+   "text": "Before. If someone taps record and then gets asked for the microphone, the first take is already half lost."
+  },
+  {
+   "id": 3,
+   "cluster": "SPEAKER_01",
+   "speaker": "Dana",
+   "start": 25.63,
+   "end": 34.47,
+   "overlapped": false,
+   "text": "That is true, but asking for the microphone on a screen that has not explained anything yet is exactly the prompt people deny."
+  },
+  {
+   "id": 4,
+   "cluster": "SPEAKER_00",
+   "speaker": "Me",
+   "start": 34.92,
+   "end": 44.54,
+   "overlapped": false,
+   "text": "So we explain first and ask second, on the same screen. One sentence about what the app does, then the button that triggers the prompt."
+  },
+  {
+   "id": 5,
+   "cluster": "SPEAKER_02",
+   "speaker": "Yuval",
+   "start": 44.99,
+   "end": 52.68,
+   "overlapped": false,
+   "text": "I can have that laid out by Thursday. Does it need the illustration, or can it ship with the wordmark?"
+  },
+  {
+   "id": 6,
+   "cluster": "SPEAKER_00",
+   "speaker": "Me",
+   "start": 53.13,
+   "end": 60.82,
+   "overlapped": false,
+   "text": "The wordmark is enough for now. Let us see whether the sentence carries it before we spend a week drawing."
+  },
+  {
+   "id": 7,
+   "cluster": "SPEAKER_01",
+   "speaker": "Dana",
+   "start": 61.27,
+   "end": 69.73,
+   "overlapped": false,
+   "text": "Agreed. I will write the sentence today and send it to both of you before I put it anywhere near the design."
+  }
+ ]
+}

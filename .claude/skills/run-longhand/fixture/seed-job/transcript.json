@@ -1,0 +1,31 @@
+{
+  "duration" : 8.1985625,
+  "language" : "he",
+  "mergeParams" : {
+    "boundaryToleranceMs" : 250,
+    "turnGapSeconds" : 1
+  },
+  "models" : {
+    "asr" : "whisperkit\/large-v3-v20240930_626MB",
+    "diarization" : "speakerkit\/pyannote-community-1"
+  },
+  "pipelineVersion" : "1.1.0",
+  "recordingID" : "79323C6B-75C2-4AF3-BCFD-1F69D4E8B54C",
+  "sourceHash" : "3600ed69bb29a5553a9f7c5d84795459303122c4d4664c36c460d35a67ddb37f",
+  "speakers" : {
+    "SPEAKER_00" : {
+      "displayName" : "Speaker 1"
+    }
+  },
+  "turns" : [
+    {
+      "cluster" : "SPEAKER_00",
+      "end" : 8.0600004196167,
+      "id" : 0,
+      "overlapped" : false,
+      "speaker" : "Speaker 1",
+      "start" : 0.019999999552965164,
+      "text" : "שלום, זו היא בדיקת תמלול. 1, 2, 3, 4, 5. אני מקליט את ההודעה הזאת בעברית."
+    }
+  ]
+}

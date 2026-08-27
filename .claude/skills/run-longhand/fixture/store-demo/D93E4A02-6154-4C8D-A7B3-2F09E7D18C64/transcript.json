@@ -1,0 +1,50 @@
+{
+ "recordingID": "D93E4A02-6154-4C8D-A7B3-2F09E7D18C64",
+ "sourceHash": "0000000000000000000000000000000000000000000000007fb21e705d1d565e",
+ "duration": 28.5,
+ "language": "en",
+ "pipelineVersion": "1.1.0",
+ "models": {
+  "asr": "whisperkit/large-v3-v20240930_626MB",
+  "diarization": "speakerkit/pyannote-community-1"
+ },
+ "mergeParams": {
+  "boundaryToleranceMs": 250,
+  "turnGapSeconds": 1
+ },
+ "speakers": {
+  "SPEAKER_00": {
+   "displayName": "Me",
+   "confirmedByUser": true
+  }
+ },
+ "turns": [
+  {
+   "id": 0,
+   "cluster": "SPEAKER_00",
+   "speaker": "Me",
+   "start": 1.2,
+   "end": 13.51,
+   "overlapped": false,
+   "text": "Note to self. The battery reading on the second unit drifts by about four percent after an hour in the cold, and it recovers on its own once it is back inside."
+  },
+  {
+   "id": 1,
+   "cluster": "SPEAKER_00",
+   "speaker": "Me",
+   "start": 13.96,
+   "end": 21.65,
+   "overlapped": false,
+   "text": "That means it is the sensor and not the cell, so the replacement we ordered last month was probably unnecessary."
+  },
+  {
+   "id": 2,
+   "cluster": "SPEAKER_00",
+   "speaker": "Me",
+   "start": 22.1,
+   "end": 27.1,
+   "overlapped": false,
+   "text": "Check the logs from the January trip before telling anyone that with confidence."
+  }
+ ]
+}

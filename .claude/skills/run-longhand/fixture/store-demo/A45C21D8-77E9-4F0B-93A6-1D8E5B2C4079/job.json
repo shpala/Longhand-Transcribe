@@ -1,0 +1,10 @@
+{
+ "id": "A45C21D8-77E9-4F0B-93A6-1D8E5B2C4079",
+ "title": "Client call: Northwind",
+ "language": "en",
+ "createdAt": 808773566.0,
+ "duration": 43.76,
+ "state": "COMPLETE",
+ "lastCheckpointState": "COMPLETE",
+ "degradations": []
+}

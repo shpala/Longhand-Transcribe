@@ -1,0 +1,802 @@
+{
+ "params": {
+  "boundaryTolerance": 0.25,
+  "nearestIntervalMaxGap": 2,
+  "smoothIslands": true,
+  "turnGap": 1
+ },
+ "words": [
+  {
+   "start": 1.2,
+   "end": 1.56,
+   "text": "Thanks",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 1.58,
+   "end": 1.95,
+   "text": "for",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 1.97,
+   "end": 2.33,
+   "text": "making",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 2.35,
+   "end": 2.72,
+   "text": "the",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 2.74,
+   "end": 3.1,
+   "text": "time.",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 3.12,
+   "end": 3.49,
+   "text": "I",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 3.51,
+   "end": 3.87,
+   "text": "have",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 3.89,
+   "end": 4.26,
+   "text": "about",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 4.28,
+   "end": 4.64,
+   "text": "twenty",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 4.66,
+   "end": 5.03,
+   "text": "minutes",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 5.05,
+   "end": 5.41,
+   "text": "and",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 5.43,
+   "end": 5.8,
+   "text": "then",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 5.82,
+   "end": 6.18,
+   "text": "I",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 6.2,
+   "end": 6.56,
+   "text": "have",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 6.58,
+   "end": 6.95,
+   "text": "to",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 6.97,
+   "end": 7.33,
+   "text": "be",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 7.35,
+   "end": 7.72,
+   "text": "somewhere",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 7.74,
+   "end": 8.1,
+   "text": "else.",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 8.57,
+   "end": 8.94,
+   "text": "Twenty",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 8.96,
+   "end": 9.32,
+   "text": "is",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 9.34,
+   "end": 9.71,
+   "text": "plenty.",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 9.73,
+   "end": 10.09,
+   "text": "I",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 10.11,
+   "end": 10.48,
+   "text": "wanted",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 10.5,
+   "end": 10.86,
+   "text": "to",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 10.88,
+   "end": 11.25,
+   "text": "walk",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 11.27,
+   "end": 11.63,
+   "text": "through",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 11.65,
+   "end": 12.01,
+   "text": "the",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 12.03,
+   "end": 12.4,
+   "text": "two",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 12.42,
+   "end": 12.78,
+   "text": "things",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 12.8,
+   "end": 13.17,
+   "text": "you",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 13.19,
+   "end": 13.55,
+   "text": "flagged",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 13.57,
+   "end": 13.94,
+   "text": "in",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 13.96,
+   "end": 14.32,
+   "text": "writing",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 14.34,
+   "end": 14.71,
+   "text": "and",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 14.73,
+   "end": 15.09,
+   "text": "see",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 15.11,
+   "end": 15.48,
+   "text": "which",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 15.5,
+   "end": 15.86,
+   "text": "one",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 15.88,
+   "end": 16.25,
+   "text": "is",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 16.27,
+   "end": 16.63,
+   "text": "actually",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 16.65,
+   "end": 17.01,
+   "text": "urgent.",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 17.48,
+   "end": 17.85,
+   "text": "The",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 17.87,
+   "end": 18.23,
+   "text": "reporting",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 18.25,
+   "end": 18.62,
+   "text": "one",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 18.64,
+   "end": 19.0,
+   "text": "is",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 19.02,
+   "end": 19.39,
+   "text": "urgent.",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 19.41,
+   "end": 19.77,
+   "text": "The",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 19.79,
+   "end": 20.16,
+   "text": "export",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 20.18,
+   "end": 20.54,
+   "text": "format",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 20.56,
+   "end": 20.93,
+   "text": "is",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 20.95,
+   "end": 21.31,
+   "text": "something",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 21.33,
+   "end": 21.7,
+   "text": "we",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 21.72,
+   "end": 22.08,
+   "text": "can",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 22.1,
+   "end": 22.46,
+   "text": "live",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 22.48,
+   "end": 22.85,
+   "text": "with",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 22.87,
+   "end": 23.23,
+   "text": "until",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 23.25,
+   "end": 23.62,
+   "text": "the",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 23.64,
+   "end": 24.0,
+   "text": "spring.",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 24.47,
+   "end": 24.84,
+   "text": "Good,",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 24.86,
+   "end": 25.22,
+   "text": "that",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 25.24,
+   "end": 25.61,
+   "text": "is",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 25.63,
+   "end": 25.99,
+   "text": "the",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 26.01,
+   "end": 26.38,
+   "text": "answer",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 26.4,
+   "end": 26.76,
+   "text": "I",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 26.78,
+   "end": 27.15,
+   "text": "was",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 27.17,
+   "end": 27.53,
+   "text": "hoping",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 27.55,
+   "end": 27.91,
+   "text": "for,",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 27.93,
+   "end": 28.3,
+   "text": "because",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 28.32,
+   "end": 28.68,
+   "text": "the",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 28.7,
+   "end": 29.07,
+   "text": "reporting",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 29.09,
+   "end": 29.45,
+   "text": "change",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 29.47,
+   "end": 29.84,
+   "text": "is",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 29.86,
+   "end": 30.22,
+   "text": "much",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 30.24,
+   "end": 30.61,
+   "text": "smaller",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 30.63,
+   "end": 30.99,
+   "text": "than",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 31.01,
+   "end": 31.38,
+   "text": "it",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 31.4,
+   "end": 31.76,
+   "text": "looks.",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 32.23,
+   "end": 33.01,
+   "text": "How",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 33.03,
+   "end": 33.81,
+   "text": "small?",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 34.28,
+   "end": 34.65,
+   "text": "Days,",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 34.67,
+   "end": 35.03,
+   "text": "not",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 35.05,
+   "end": 35.41,
+   "text": "weeks.",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 35.43,
+   "end": 35.8,
+   "text": "The",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 35.82,
+   "end": 36.18,
+   "text": "numbers",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 36.2,
+   "end": 36.57,
+   "text": "are",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 36.59,
+   "end": 36.95,
+   "text": "already",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 36.97,
+   "end": 37.34,
+   "text": "being",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 37.36,
+   "end": 37.72,
+   "text": "computed.",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 37.74,
+   "end": 38.11,
+   "text": "What",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 38.13,
+   "end": 38.49,
+   "text": "is",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 38.51,
+   "end": 38.88,
+   "text": "missing",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 38.9,
+   "end": 39.26,
+   "text": "is",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 39.28,
+   "end": 39.65,
+   "text": "the",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 39.67,
+   "end": 40.03,
+   "text": "page",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 40.05,
+   "end": 40.41,
+   "text": "that",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 40.43,
+   "end": 40.8,
+   "text": "shows",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 40.82,
+   "end": 41.18,
+   "text": "them",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 41.2,
+   "end": 41.57,
+   "text": "side",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 41.59,
+   "end": 41.95,
+   "text": "by",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 41.97,
+   "end": 42.34,
+   "text": "side.",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  }
+ ]
+}

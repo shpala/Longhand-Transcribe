@@ -1,0 +1,1221 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B00000000000000000000001 /* LonghandKit in Frameworks */ = {isa = PBXBuildFile; productRef = B00000000000000000000002 /* LonghandKit */; };
+		B00000000000000000000012 /* SpeakerKit in Frameworks */ = {isa = PBXBuildFile; productRef = B00000000000000000000011 /* SpeakerKit */; };
+		B00000000000000000000014 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = B00000000000000000000013 /* WhisperKit */; };
+		D00000000000000000000001 /* Longhand.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D00000000000000000000002 /* Longhand.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		E00000000000000000000003 /* LonghandEngines in Frameworks */ = {isa = PBXBuildFile; productRef = E00000000000000000000002 /* LonghandEngines */; };
+		F00000000000000000000004 /* LonghandKit in Frameworks */ = {isa = PBXBuildFile; productRef = F00000000000000000000006 /* LonghandKit */; };
+		F00000000000000000000005 /* LonghandEngines in Frameworks */ = {isa = PBXBuildFile; productRef = F00000000000000000000007 /* LonghandEngines */; };
+		G00000000000000000000001 /* LonghandComplication.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = G00000000000000000000002 /* LonghandComplication.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		H00000000000000000000001 /* LonghandLiveActivity.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = H00000000000000000000002 /* LonghandLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C0000000000000000000000C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A073816E303499EA009A415F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A0738175303499EA009A415F;
+			remoteInfo = Longhand;
+		};
+		D00000000000000000000003 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A073816E303499EA009A415F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D00000000000000000000004;
+			remoteInfo = LonghandWatch;
+		};
+		G00000000000000000000003 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A073816E303499EA009A415F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = G00000000000000000000004;
+			remoteInfo = LonghandComplication;
+		};
+		H00000000000000000000003 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A073816E303499EA009A415F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = H00000000000000000000004;
+			remoteInfo = LonghandLiveActivity;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D00000000000000000000007 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				D00000000000000000000001 /* Longhand.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		G00000000000000000000007 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				G00000000000000000000001 /* LonghandComplication.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		H00000000000000000000007 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				H00000000000000000000001 /* LonghandLiveActivity.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		A0738176303499EA009A415F /* Longhand.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Longhand.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C0000000000000000000000D /* LonghandUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LonghandUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D00000000000000000000002 /* Longhand.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Longhand.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E0000000000000000000A001 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		F00000000000000000000001 /* Longhand.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Longhand.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		G00000000000000000000002 /* LonghandComplication.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LonghandComplication.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		H00000000000000000000002 /* LonghandLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LonghandLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C00000000000000000000020 /* Exceptions for "Longhand" folder in "Longhand" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A0738175303499EA009A415F /* Longhand */;
+		};
+		D00000000000000000000031 /* Exceptions for "LonghandWatch" folder in "LonghandWatch" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = D00000000000000000000004 /* LonghandWatch */;
+		};
+		F00000000000000000000030 /* Exceptions for "LonghandMac" folder in "LonghandMac" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F0000000000000000000000A /* LonghandMac */;
+		};
+		G00000000000000000000031 /* Exceptions for "LonghandComplication" folder in "LonghandComplication" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = G00000000000000000000004 /* LonghandComplication */;
+		};
+		H00000000000000000000031 /* Exceptions for "LonghandLiveActivity" folder in "LonghandLiveActivity" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = H00000000000000000000004 /* LonghandLiveActivity */;
+		};
+		H00000000000000000000032 /* Exceptions for "LonghandLiveActivity" folder in "Longhand" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				RecordingActivity.swift,
+				RecordingIntents.swift,
+			);
+			target = A0738175303499EA009A415F /* Longhand */;
+		};
+		H00000000000000000000033 /* Exceptions for "LonghandLiveActivity" folder in "LonghandMac" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				RecordingIntents.swift,
+			);
+			target = F0000000000000000000000A /* LonghandMac */;
+		};
+		H00000000000000000000034 /* Exceptions for "Longhand" folder in "LonghandMac" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Intents/LonghandIntents.swift,
+			);
+			target = F0000000000000000000000A /* LonghandMac */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		A0738178303499EA009A415F /* Longhand */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C00000000000000000000020 /* Exceptions for "Longhand" folder in "Longhand" target */,
+				H00000000000000000000034 /* Exceptions for "Longhand" folder in "LonghandMac" target */,
+			);
+			path = Longhand;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000004 /* LonghandUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = LonghandUITests;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000005 /* LonghandWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D00000000000000000000031 /* Exceptions for "LonghandWatch" folder in "LonghandWatch" target */,
+			);
+			path = LonghandWatch;
+			sourceTree = "<group>";
+		};
+		F00000000000000000000002 /* LonghandMac */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F00000000000000000000030 /* Exceptions for "LonghandMac" folder in "LonghandMac" target */,
+			);
+			path = LonghandMac;
+			sourceTree = "<group>";
+		};
+		G00000000000000000000005 /* LonghandComplication */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				G00000000000000000000031 /* Exceptions for "LonghandComplication" folder in "LonghandComplication" target */,
+			);
+			path = LonghandComplication;
+			sourceTree = "<group>";
+		};
+		H00000000000000000000005 /* LonghandLiveActivity */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				H00000000000000000000032 /* Exceptions for "LonghandLiveActivity" folder in "Longhand" target */,
+				H00000000000000000000033 /* Exceptions for "LonghandLiveActivity" folder in "LonghandMac" target */,
+				H00000000000000000000031 /* Exceptions for "LonghandLiveActivity" folder in "LonghandLiveActivity" target */,
+			);
+			path = LonghandLiveActivity;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A0738173303499EA009A415F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B00000000000000000000001 /* LonghandKit in Frameworks */,
+				B00000000000000000000012 /* SpeakerKit in Frameworks */,
+				B00000000000000000000014 /* WhisperKit in Frameworks */,
+				E00000000000000000000003 /* LonghandEngines in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C0000000000000000000000A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00000000000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F00000000000000000000004 /* LonghandKit in Frameworks */,
+				F00000000000000000000005 /* LonghandEngines in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		G00000000000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		H00000000000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A073816D303499EA009A415F = {
+			isa = PBXGroup;
+			children = (
+				E0000000000000000000A002 /* Config */,
+				A0738178303499EA009A415F /* Longhand */,
+				D00000000000000000000005 /* LonghandWatch */,
+				F00000000000000000000002 /* LonghandMac */,
+				G00000000000000000000005 /* LonghandComplication */,
+				H00000000000000000000005 /* LonghandLiveActivity */,
+				C00000000000000000000004 /* LonghandUITests */,
+				A0738177303499EA009A415F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A0738177303499EA009A415F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A0738176303499EA009A415F /* Longhand.app */,
+				D00000000000000000000002 /* Longhand.app */,
+				F00000000000000000000001 /* Longhand.app */,
+				G00000000000000000000002 /* LonghandComplication.appex */,
+				H00000000000000000000002 /* LonghandLiveActivity.appex */,
+				C0000000000000000000000D /* LonghandUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E0000000000000000000A002 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				E0000000000000000000A001 /* Signing.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A0738175303499EA009A415F /* Longhand */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A0738181303499ED009A415F /* Build configuration list for PBXNativeTarget "Longhand" */;
+			buildPhases = (
+				A0738172303499EA009A415F /* Sources */,
+				A0738173303499EA009A415F /* Frameworks */,
+				A0738174303499EA009A415F /* Resources */,
+				D00000000000000000000007 /* Embed Watch Content */,
+				H00000000000000000000007 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D00000000000000000000008 /* PBXTargetDependency */,
+				H00000000000000000000008 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A0738178303499EA009A415F /* Longhand */,
+			);
+			name = Longhand;
+			packageProductDependencies = (
+				B00000000000000000000002 /* LonghandKit */,
+				B00000000000000000000011 /* SpeakerKit */,
+				B00000000000000000000013 /* WhisperKit */,
+				E00000000000000000000002 /* LonghandEngines */,
+			);
+			productName = Longhand;
+			productReference = A0738176303499EA009A415F /* Longhand.app */;
+			productType = "com.apple.product-type.application";
+		};
+		C00000000000000000000005 /* LonghandUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C00000000000000000000006 /* Build configuration list for PBXNativeTarget "LonghandUITests" */;
+			buildPhases = (
+				C00000000000000000000009 /* Sources */,
+				C0000000000000000000000A /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C0000000000000000000000B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				C00000000000000000000004 /* LonghandUITests */,
+			);
+			name = LonghandUITests;
+			packageProductDependencies = (
+			);
+			productName = LonghandUITests;
+			productReference = C0000000000000000000000D /* LonghandUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		D00000000000000000000004 /* LonghandWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D00000000000000000000009 /* Build configuration list for PBXNativeTarget "LonghandWatch" */;
+			buildPhases = (
+				D0000000000000000000000A /* Sources */,
+				D00000000000000000000006 /* Frameworks */,
+				D0000000000000000000000B /* Resources */,
+				G00000000000000000000007 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				G00000000000000000000008 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D00000000000000000000005 /* LonghandWatch */,
+			);
+			name = LonghandWatch;
+			packageProductDependencies = (
+			);
+			productName = LonghandWatch;
+			productReference = D00000000000000000000002 /* Longhand.app */;
+			productType = "com.apple.product-type.application";
+		};
+		F0000000000000000000000A /* LonghandMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F0000000000000000000000B /* Build configuration list for PBXNativeTarget "LonghandMac" */;
+			buildPhases = (
+				F00000000000000000000009 /* Sources */,
+				F00000000000000000000003 /* Frameworks */,
+				F00000000000000000000008 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F00000000000000000000002 /* LonghandMac */,
+			);
+			name = LonghandMac;
+			packageProductDependencies = (
+				F00000000000000000000006 /* LonghandKit */,
+				F00000000000000000000007 /* LonghandEngines */,
+			);
+			productName = LonghandMac;
+			productReference = F00000000000000000000001 /* Longhand.app */;
+			productType = "com.apple.product-type.application";
+		};
+		G00000000000000000000004 /* LonghandComplication */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = G00000000000000000000009 /* Build configuration list for PBXNativeTarget "LonghandComplication" */;
+			buildPhases = (
+				G0000000000000000000000A /* Sources */,
+				G00000000000000000000006 /* Frameworks */,
+				G0000000000000000000000B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				G00000000000000000000005 /* LonghandComplication */,
+			);
+			name = LonghandComplication;
+			packageProductDependencies = (
+			);
+			productName = LonghandComplication;
+			productReference = G00000000000000000000002 /* LonghandComplication.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		H00000000000000000000004 /* LonghandLiveActivity */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = H00000000000000000000009 /* Build configuration list for PBXNativeTarget "LonghandLiveActivity" */;
+			buildPhases = (
+				H0000000000000000000000A /* Sources */,
+				H00000000000000000000006 /* Frameworks */,
+				H0000000000000000000000B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				H00000000000000000000005 /* LonghandLiveActivity */,
+			);
+			name = LonghandLiveActivity;
+			packageProductDependencies = (
+			);
+			productName = LonghandLiveActivity;
+			productReference = H00000000000000000000002 /* LonghandLiveActivity.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A073816E303499EA009A415F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2660;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					A0738175303499EA009A415F = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					C00000000000000000000005 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = A0738175303499EA009A415F;
+					};
+					D00000000000000000000004 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					F0000000000000000000000A = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					G00000000000000000000004 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					H00000000000000000000004 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+				};
+			};
+			buildConfigurationList = A0738171303499EA009A415F /* Build configuration list for PBXProject "Longhand" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A073816D303499EA009A415F;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				B00000000000000000000003 /* XCLocalSwiftPackageReference "LonghandKit" */,
+				E00000000000000000000001 /* XCLocalSwiftPackageReference "LonghandEngines" */,
+				B00000000000000000000010 /* XCRemoteSwiftPackageReference "argmax-oss-swift" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A0738177303499EA009A415F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A0738175303499EA009A415F /* Longhand */,
+				D00000000000000000000004 /* LonghandWatch */,
+				F0000000000000000000000A /* LonghandMac */,
+				G00000000000000000000004 /* LonghandComplication */,
+				H00000000000000000000004 /* LonghandLiveActivity */,
+				C00000000000000000000005 /* LonghandUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A0738174303499EA009A415F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0000000000000000000000B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00000000000000000000008 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		G0000000000000000000000B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		H0000000000000000000000B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A0738172303499EA009A415F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C00000000000000000000009 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0000000000000000000000A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00000000000000000000009 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		G0000000000000000000000A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		H0000000000000000000000A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C0000000000000000000000B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A0738175303499EA009A415F /* Longhand */;
+			targetProxy = C0000000000000000000000C /* PBXContainerItemProxy */;
+		};
+		D00000000000000000000008 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D00000000000000000000004 /* LonghandWatch */;
+			targetProxy = D00000000000000000000003 /* PBXContainerItemProxy */;
+		};
+		G00000000000000000000008 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = G00000000000000000000004 /* LonghandComplication */;
+			targetProxy = G00000000000000000000003 /* PBXContainerItemProxy */;
+		};
+		H00000000000000000000008 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = H00000000000000000000004 /* LonghandLiveActivity */;
+			targetProxy = H00000000000000000000003 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		A073817F303499ED009A415F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = E0000000000000000000A001 /* Signing.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "$(LONGHAND_TEAM_ID)";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A0738180303499ED009A415F /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = E0000000000000000000A001 /* Signing.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "$(LONGHAND_TEAM_ID)";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A0738182303499ED009A415F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = "$(LONGHAND_TEAM_ID)";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Longhand/Info.plist;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Longhand tags new recordings with where they were made. Location is stored only on this device and never included in exports.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Longhand records audio only when you start a recording, and processes it entirely on this device.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Longhand uses Apple's on-device speech recognition to turn your recordings into text. Audio and transcripts stay on this device.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = NO;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shpala.Longhand;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A0738183303499ED009A415F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = "$(LONGHAND_TEAM_ID)";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Longhand/Info.plist;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Longhand tags new recordings with where they were made. Location is stored only on this device and never included in exports.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Longhand records audio only when you start a recording, and processes it entirely on this device.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Longhand uses Apple's on-device speech recognition to turn your recordings into text. Audio and transcripts stay on this device.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = NO;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shpala.Longhand;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		C00000000000000000000007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = "$(LONGHAND_TEAM_ID)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shpala.LonghandUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Longhand;
+			};
+			name = Debug;
+		};
+		C00000000000000000000008 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = "$(LONGHAND_TEAM_ID)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shpala.LonghandUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Longhand;
+			};
+			name = Release;
+		};
+		D0000000000000000000000C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = "$(LONGHAND_TEAM_ID)";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LonghandWatch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Longhand;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Longhand tags recordings you make on your watch with where they were made. Location is stored only on your iPhone and never included in exports.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Longhand records audio only when you start a recording, and processes it entirely on your iPhone.";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.shpala.Longhand;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shpala.Longhand.watchkitapp;
+				PRODUCT_NAME = Longhand;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Debug;
+		};
+		D0000000000000000000000D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = "$(LONGHAND_TEAM_ID)";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LonghandWatch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Longhand;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Longhand tags recordings you make on your watch with where they were made. Location is stored only on your iPhone and never included in exports.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Longhand records audio only when you start a recording, and processes it entirely on your iPhone.";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.shpala.Longhand;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shpala.Longhand.watchkitapp;
+				PRODUCT_NAME = Longhand;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Release;
+		};
+		F0000000000000000000000C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = LonghandMac/LonghandMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = "$(LONGHAND_TEAM_ID)";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LonghandMac/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Pavel Ferencz. Licensed under the Apache License, Version 2.0.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Longhand tags new recordings with where they were made. Location is stored only on this Mac and never included in exports.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Longhand records audio only when you start a recording, and processes it entirely on this Mac.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Longhand uses Apple's on-device speech recognition to turn your recordings into text. Audio and transcripts stay on this Mac.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shpala.Longhand;
+				PRODUCT_NAME = Longhand;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		F0000000000000000000000D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = LonghandMac/LonghandMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = "$(LONGHAND_TEAM_ID)";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LonghandMac/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Pavel Ferencz. Licensed under the Apache License, Version 2.0.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Longhand tags new recordings with where they were made. Location is stored only on this Mac and never included in exports.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Longhand records audio only when you start a recording, and processes it entirely on this Mac.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Longhand uses Apple's on-device speech recognition to turn your recordings into text. Audio and transcripts stay on this Mac.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shpala.Longhand;
+				PRODUCT_NAME = Longhand;
+				SDKROOT = macosx;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		G0000000000000000000000C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = "$(LONGHAND_TEAM_ID)";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LonghandComplication/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Longhand;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shpala.Longhand.watchkitapp.recordwidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Debug;
+		};
+		G0000000000000000000000D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = "$(LONGHAND_TEAM_ID)";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LonghandComplication/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Longhand;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shpala.Longhand.watchkitapp.recordwidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Release;
+		};
+		H0000000000000000000000C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = "$(LONGHAND_TEAM_ID)";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LonghandLiveActivity/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Longhand;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shpala.Longhand.LiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		H0000000000000000000000D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = "$(LONGHAND_TEAM_ID)";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LonghandLiveActivity/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Longhand;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shpala.Longhand.LiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A0738171303499EA009A415F /* Build configuration list for PBXProject "Longhand" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A073817F303499ED009A415F /* Debug */,
+				A0738180303499ED009A415F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A0738181303499ED009A415F /* Build configuration list for PBXNativeTarget "Longhand" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A0738182303499ED009A415F /* Debug */,
+				A0738183303499ED009A415F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C00000000000000000000006 /* Build configuration list for PBXNativeTarget "LonghandUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C00000000000000000000007 /* Debug */,
+				C00000000000000000000008 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D00000000000000000000009 /* Build configuration list for PBXNativeTarget "LonghandWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D0000000000000000000000C /* Debug */,
+				D0000000000000000000000D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F0000000000000000000000B /* Build configuration list for PBXNativeTarget "LonghandMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F0000000000000000000000C /* Debug */,
+				F0000000000000000000000D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		G00000000000000000000009 /* Build configuration list for PBXNativeTarget "LonghandComplication" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				G0000000000000000000000C /* Debug */,
+				G0000000000000000000000D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		H00000000000000000000009 /* Build configuration list for PBXNativeTarget "LonghandLiveActivity" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				H0000000000000000000000C /* Debug */,
+				H0000000000000000000000D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		B00000000000000000000003 /* XCLocalSwiftPackageReference "LonghandKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = LonghandKit;
+		};
+		E00000000000000000000001 /* XCLocalSwiftPackageReference "LonghandEngines" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = LonghandEngines;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B00000000000000000000010 /* XCRemoteSwiftPackageReference "argmax-oss-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/argmaxinc/argmax-oss-swift";
+			requirement = {
+				kind = exactVersion;
+				version = 1.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B00000000000000000000002 /* LonghandKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LonghandKit;
+		};
+		B00000000000000000000011 /* SpeakerKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B00000000000000000000010 /* XCRemoteSwiftPackageReference "argmax-oss-swift" */;
+			productName = SpeakerKit;
+		};
+		B00000000000000000000013 /* WhisperKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B00000000000000000000010 /* XCRemoteSwiftPackageReference "argmax-oss-swift" */;
+			productName = WhisperKit;
+		};
+		E00000000000000000000002 /* LonghandEngines */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LonghandEngines;
+		};
+		F00000000000000000000006 /* LonghandKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LonghandKit;
+		};
+		F00000000000000000000007 /* LonghandEngines */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LonghandEngines;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = A073816E303499EA009A415F /* Project object */;
+}

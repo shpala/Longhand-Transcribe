@@ -1,0 +1,35 @@
+name: Pages
+
+# Publishes site/ (the App Store privacy policy and support pages) to GitHub
+# Pages. The site is public even while the repository is private.
+# Every push to main, not only ones touching site/: history here is kept to a
+# single amended commit, every push is a force-push, and a paths filter did
+# not fire on those. The deploy is seconds on Linux.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
