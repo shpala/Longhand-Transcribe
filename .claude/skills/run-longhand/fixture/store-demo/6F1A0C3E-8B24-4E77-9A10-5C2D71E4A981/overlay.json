@@ -1,0 +1,20 @@
+{
+ "version": 1,
+ "turnEdits": [],
+ "speakerRanges": [],
+ "markers": [],
+ "speakerNames": {
+  "SPEAKER_00": {
+   "displayName": "Me",
+   "confirmed": true
+  },
+  "SPEAKER_01": {
+   "displayName": "Dana",
+   "confirmed": true
+  },
+  "SPEAKER_02": {
+   "displayName": "Yuval",
+   "confirmed": false
+  }
+ }
+}

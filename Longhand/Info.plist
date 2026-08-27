@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.shpala.Longhand.processing.*</string>
+	</array>
+	<!-- Without this a take stops when the screen locks or another app comes
+	     forward: iOS suspends AVAudioRecorder along with the app. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+	<!-- Puts Longhand in other apps' share sheets and Open In menus for audio
+	     and video: Voice Memos, Files, Mail attachments, messaging apps.
+	     Alternate rank, so it never becomes the default player for audio.
+	     Not opened in place: iOS copies the file into Documents/Inbox, which
+	     the import deletes once the job has its own copy. -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Audio Recording</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.audio</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Video Recording</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.movie</string>
+			</array>
+		</dict>
+	</array>
+	<!-- A take in progress shows on the Lock Screen and in the Dynamic Island
+	     (LonghandLiveActivity extension). -->
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<false/>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>com.shpala.Longhand.library</string>
+	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LonghandIndigo</string>
+	</dict>
+</dict>
+</plist>

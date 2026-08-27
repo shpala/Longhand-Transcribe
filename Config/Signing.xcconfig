@@ -1,0 +1,10 @@
+// Code-signing identity belongs to whoever is building, not to the project,
+// so the team ID is not committed. Put yours in Config/Local.xcconfig, which
+// is gitignored:
+//
+//     LONGHAND_TEAM_ID = ABCDE12345
+//
+// It is only needed to sign for a physical device or for distribution.
+// Without it the project still builds and runs on a simulator, and the whole
+// LonghandKit and LonghandEngines test suite runs without touching Xcode.
+#include? "Local.xcconfig"

@@ -1,0 +1,82 @@
+{
+ "recordingID": "2B7D9E15-3C48-4A61-B0F2-88E4C6A0D53B",
+ "sourceHash": "00000000000000000000000000000000000000000000000009f93ff35f31bed4",
+ "duration": 31.83,
+ "language": "he",
+ "pipelineVersion": "1.1.0",
+ "models": {
+  "asr": "whisperkit/large-v3-v20240930_626MB",
+  "diarization": "speakerkit/pyannote-community-1"
+ },
+ "mergeParams": {
+  "boundaryToleranceMs": 250,
+  "turnGapSeconds": 1
+ },
+ "speakers": {
+  "SPEAKER_00": {
+   "displayName": "Me",
+   "confirmedByUser": true
+  },
+  "SPEAKER_01": {
+   "displayName": "רמי",
+   "matchScore": 0.79,
+   "confirmedByUser": true
+  }
+ },
+ "turns": [
+  {
+   "id": 0,
+   "cluster": "SPEAKER_01",
+   "speaker": "רמי",
+   "start": 1.2,
+   "end": 5.43,
+   "overlapped": false,
+   "text": "בוקר טוב. הספקתי לעבור על ההערות מאתמול, ורוב הדברים כבר סגורים."
+  },
+  {
+   "id": 1,
+   "cluster": "SPEAKER_00",
+   "speaker": "Me",
+   "start": 5.88,
+   "end": 7.48,
+   "overlapped": false,
+   "text": "יופי. מה נשאר פתוח?"
+  },
+  {
+   "id": 2,
+   "cluster": "SPEAKER_01",
+   "speaker": "רמי",
+   "start": 7.93,
+   "end": 13.32,
+   "overlapped": false,
+   "text": "שני דברים. הראשון הוא הסדר של המסכים, והשני הוא מה קורה כשאין חיבור לרשת."
+  },
+  {
+   "id": 3,
+   "cluster": "SPEAKER_00",
+   "speaker": "Me",
+   "start": 13.77,
+   "end": 19.15,
+   "overlapped": false,
+   "text": "בלי רשת הכול אמור לעבוד בדיוק אותו דבר. זאת כל הנקודה של האפליקציה הזאת."
+  },
+  {
+   "id": 4,
+   "cluster": "SPEAKER_01",
+   "speaker": "רמי",
+   "start": 19.6,
+   "end": 25.75,
+   "overlapped": false,
+   "text": "בדקתי את זה במטוס בשבוע שעבר. התמלול רץ, הזיהוי של הדוברים רץ, והכול נשאר על המכשיר."
+  },
+  {
+   "id": 5,
+   "cluster": "SPEAKER_00",
+   "speaker": "Me",
+   "start": 26.2,
+   "end": 30.43,
+   "overlapped": false,
+   "text": "מצוין. אז נשאר רק הסדר של המסכים, ואת זה נסגור מחר."
+  }
+ ]
+}

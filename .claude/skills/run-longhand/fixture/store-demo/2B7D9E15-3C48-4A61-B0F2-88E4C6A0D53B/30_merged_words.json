@@ -1,0 +1,570 @@
+{
+ "params": {
+  "boundaryTolerance": 0.25,
+  "nearestIntervalMaxGap": 2,
+  "smoothIslands": true,
+  "turnGap": 1
+ },
+ "words": [
+  {
+   "start": 1.2,
+   "end": 1.56,
+   "text": "בוקר",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 1.58,
+   "end": 1.95,
+   "text": "טוב.",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 1.97,
+   "end": 2.33,
+   "text": "הספקתי",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 2.35,
+   "end": 2.72,
+   "text": "לעבור",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 2.74,
+   "end": 3.1,
+   "text": "על",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 3.12,
+   "end": 3.49,
+   "text": "ההערות",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 3.51,
+   "end": 3.87,
+   "text": "מאתמול,",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 3.89,
+   "end": 4.26,
+   "text": "ורוב",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 4.28,
+   "end": 4.64,
+   "text": "הדברים",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 4.66,
+   "end": 5.03,
+   "text": "כבר",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 5.05,
+   "end": 5.41,
+   "text": "סגורים.",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 5.88,
+   "end": 6.26,
+   "text": "יופי.",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 6.28,
+   "end": 6.66,
+   "text": "מה",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 6.68,
+   "end": 7.06,
+   "text": "נשאר",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 7.08,
+   "end": 7.46,
+   "text": "פתוח?",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 7.93,
+   "end": 8.3,
+   "text": "שני",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 8.32,
+   "end": 8.68,
+   "text": "דברים.",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 8.7,
+   "end": 9.06,
+   "text": "הראשון",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 9.08,
+   "end": 9.45,
+   "text": "הוא",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 9.47,
+   "end": 9.83,
+   "text": "הסדר",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 9.85,
+   "end": 10.22,
+   "text": "של",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 10.24,
+   "end": 10.6,
+   "text": "המסכים,",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 10.62,
+   "end": 10.99,
+   "text": "והשני",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 11.01,
+   "end": 11.37,
+   "text": "הוא",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 11.39,
+   "end": 11.76,
+   "text": "מה",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 11.78,
+   "end": 12.14,
+   "text": "קורה",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 12.16,
+   "end": 12.53,
+   "text": "כשאין",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 12.55,
+   "end": 12.91,
+   "text": "חיבור",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 12.93,
+   "end": 13.3,
+   "text": "לרשת.",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 13.77,
+   "end": 14.13,
+   "text": "בלי",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 14.15,
+   "end": 14.51,
+   "text": "רשת",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 14.53,
+   "end": 14.9,
+   "text": "הכול",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 14.92,
+   "end": 15.28,
+   "text": "אמור",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 15.3,
+   "end": 15.67,
+   "text": "לעבוד",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 15.69,
+   "end": 16.05,
+   "text": "בדיוק",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 16.07,
+   "end": 16.44,
+   "text": "אותו",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 16.46,
+   "end": 16.82,
+   "text": "דבר.",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 16.84,
+   "end": 17.21,
+   "text": "זאת",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 17.23,
+   "end": 17.59,
+   "text": "כל",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 17.61,
+   "end": 17.98,
+   "text": "הנקודה",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 18.0,
+   "end": 18.36,
+   "text": "של",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 18.38,
+   "end": 18.75,
+   "text": "האפליקציה",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 18.77,
+   "end": 19.13,
+   "text": "הזאת.",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 19.6,
+   "end": 19.96,
+   "text": "בדקתי",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 19.98,
+   "end": 20.35,
+   "text": "את",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 20.37,
+   "end": 20.73,
+   "text": "זה",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 20.75,
+   "end": 21.12,
+   "text": "במטוס",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 21.14,
+   "end": 21.5,
+   "text": "בשבוע",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 21.52,
+   "end": 21.89,
+   "text": "שעבר.",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 21.91,
+   "end": 22.27,
+   "text": "התמלול",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 22.29,
+   "end": 22.66,
+   "text": "רץ,",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 22.68,
+   "end": 23.04,
+   "text": "הזיהוי",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 23.06,
+   "end": 23.43,
+   "text": "של",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 23.45,
+   "end": 23.81,
+   "text": "הדוברים",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 23.83,
+   "end": 24.2,
+   "text": "רץ,",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 24.22,
+   "end": 24.58,
+   "text": "והכול",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 24.6,
+   "end": 24.96,
+   "text": "נשאר",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 24.98,
+   "end": 25.35,
+   "text": "על",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 25.37,
+   "end": 25.73,
+   "text": "המכשיר.",
+   "speaker": "SPEAKER_01",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 26.2,
+   "end": 26.57,
+   "text": "מצוין.",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 26.59,
+   "end": 26.95,
+   "text": "אז",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 26.97,
+   "end": 27.34,
+   "text": "נשאר",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 27.36,
+   "end": 27.72,
+   "text": "רק",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 27.74,
+   "end": 28.11,
+   "text": "הסדר",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 28.13,
+   "end": 28.49,
+   "text": "של",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 28.51,
+   "end": 28.88,
+   "text": "המסכים,",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 28.9,
+   "end": 29.26,
+   "text": "ואת",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 29.28,
+   "end": 29.65,
+   "text": "זה",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 29.67,
+   "end": 30.03,
+   "text": "נסגור",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  },
+  {
+   "start": 30.05,
+   "end": 30.41,
+   "text": "מחר.",
+   "speaker": "SPEAKER_00",
+   "overlapped": false,
+   "decision": "segmentVote"
+  }
+ ]
+}

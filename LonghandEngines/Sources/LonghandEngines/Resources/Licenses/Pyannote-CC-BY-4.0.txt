@@ -1,0 +1,58 @@
+Speaker diarization uses the pyannote "speaker-diarization-community-1"
+pipeline by pyannote / pyannoteAI (Hervé Bredin and contributors), converted
+to Core ML and quantized by Argmax, Inc.
+
+The pipeline is three components under two licences, not one:
+
+  1. pyannote/segmentation-3.0            (MIT)
+     https://huggingface.co/pyannote/segmentation-3.0
+     Copyright (c) 2023 pyannote contributors
+
+  2. pyannote/wespeaker-voxceleb-resnet34-LM (CC BY 4.0)
+     https://huggingface.co/pyannote/wespeaker-voxceleb-resnet34-LM
+     Copyright (c) 2023 pyannote contributors
+
+  3. pyannote/speaker-diarization-community-1 (CC BY 4.0)
+     https://huggingface.co/pyannote/speaker-diarization-community-1
+     Copyright (c) 2025 pyannoteAI
+
+These Core ML models are included in this app rather than downloaded, so this
+notice covers redistribution, not merely use. Components 2 and 3 are CC BY 4.0,
+which permits that with attribution and a statement of changes; both are given
+here and shown in the app under Acknowledgments.
+
+CHANGES MADE: components 1–3 were converted from PyTorch to Core ML and
+quantized by Argmax, Inc. for on-device execution. No retraining or
+architectural modification was performed by Longhand.
+
+The CC BY 4.0 components are licensed under the Creative Commons Attribution
+4.0 International License. To view a copy of this license, visit:
+
+    https://creativecommons.org/licenses/by/4.0/
+
+You are free to share and adapt the material for any purpose, even
+commercially, under the condition of giving appropriate credit, providing a
+link to the license, and indicating if changes were made.
+
+DISCLAIMER OF WARRANTIES AND LIMITATION OF LIABILITY
+
+Unless otherwise separately undertaken by the Licensor, to the extent
+possible, the Licensor offers the Licensed Material as-is and as-available,
+and makes no representations or warranties of any kind concerning the
+Licensed Material, whether express, implied, statutory, or other. This
+includes, without limitation, warranties of title, merchantability, fitness
+for a particular purpose, non-infringement, absence of latent or other
+defects, accuracy, or the presence or absence of errors, whether or not known
+or discoverable.
+
+To the extent possible, in no event will the Licensor be liable to You on any
+legal theory (including, without limitation, negligence) or otherwise for any
+direct, special, indirect, incidental, consequential, punitive, exemplary, or
+other losses, costs, expenses, or damages arising out of this Public License
+or use of the Licensed Material, even if the Licensor has been advised of the
+possibility of such losses, costs, expenses, or damages.
+
+The full licence text is available at the URL above.
+
+The MIT-licensed component (segmentation-3.0) is provided under the terms in
+Whisper-MIT.txt, which reproduces the standard MIT licence text.

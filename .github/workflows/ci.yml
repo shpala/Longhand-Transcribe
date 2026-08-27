@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The deterministic core and the pipeline tests. Neither needs a model, a
+  # microphone or a simulator, so this is the job worth running on every push.
+  packages:
+    name: Package tests
+    # LonghandEngines targets macOS 26, so its tests only run on a macOS 26 host.
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Toolchain
+        run: xcodebuild -version && swift --version
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            LonghandKit/.build
+            LonghandEngines/.build
+          key: spm-${{ runner.os }}-${{ hashFiles('LonghandEngines/Package.resolved', '**/Package.swift') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      - name: LonghandKit
+        run: swift test --package-path LonghandKit
+
+      - name: LonghandEngines
+        run: swift test --package-path LonghandEngines
+
+  # Compiles every shell without signing. Slower and billed at the macOS rate,
+  # so it runs on pull requests and on demand rather than on every push.
+  apps:
+    name: App builds
+    if: github.event_name != 'push'
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: iPhone, iPad and watch (simulator)
+        run: |
+          xcodebuild -project Longhand.xcodeproj -scheme Longhand \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ci \
+            CODE_SIGNING_ALLOWED=NO build
+
+      - name: Mac
+        run: |
+          xcodebuild -project Longhand.xcodeproj -scheme LonghandMac \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath build/ci \
+            CODE_SIGNING_ALLOWED=NO build

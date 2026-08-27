@@ -1,0 +1,42 @@
+Longhand
+Copyright 2026 Pavel Ferencz
+
+This product is licensed under the Apache License, Version 2.0. See LICENSE.
+
+It bundles or depends on third-party work under its own terms. Full texts are
+in LonghandEngines/Sources/LonghandEngines/Resources/Licenses/ and are shown
+to users in the app under Settings, Acknowledgments.
+
+Argmax OSS (WhisperKit, SpeakerKit)
+  MIT License, Copyright (c) 2024 argmax, inc.
+  https://github.com/argmaxinc/argmax-oss-swift
+
+swift-transformers, portions of which are contained in the Argmax package
+  Apache License 2.0, Copyright 2022 Hugging Face SAS
+  https://github.com/huggingface/swift-transformers
+
+OpenAI Whisper model weights, large-v3 family, converted to Core ML by Argmax
+  MIT License, Copyright (c) 2022 OpenAI
+  Downloaded at run time; not contained in this repository.
+
+pyannote speaker diarization, three components under two licences, converted
+to Core ML and quantized by Argmax, Inc. and bundled in the app binary:
+
+  pyannote/segmentation-3.0
+    MIT License, Copyright (c) 2023 pyannote contributors
+
+  pyannote/wespeaker-voxceleb-resnet34-LM
+    CC BY 4.0, Copyright (c) 2023 pyannote contributors
+
+  pyannote/speaker-diarization-community-1
+    CC BY 4.0, Copyright (c) 2025 pyannoteAI
+
+  CHANGES MADE: the three components were converted from PyTorch to Core ML
+  and quantized by Argmax, Inc. for on-device execution. No retraining or
+  architectural modification was performed for Longhand. This statement and
+  the attributions above satisfy CC BY 4.0 for redistribution of those two
+  components, which are files in this repository rather than downloads.
+
+swift-argument-parser, used only by the offline accuracy tool
+  Apache License 2.0, Copyright (c) 2020 Apple Inc.
+  https://github.com/apple/swift-argument-parser

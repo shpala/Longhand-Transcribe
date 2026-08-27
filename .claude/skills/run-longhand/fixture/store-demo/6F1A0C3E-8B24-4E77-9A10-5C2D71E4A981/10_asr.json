@@ -1,0 +1,1099 @@
+{
+ "engine": "whisperkit",
+ "language": "en",
+ "modelIdentifier": "whisperkit/large-v3-v20240930_626MB",
+ "segments": [
+  {
+   "id": 0,
+   "start": 1.2,
+   "end": 9.28,
+   "text": "Alright, we said we would come back to the onboarding screen once the copy was settled, so let us start there.",
+   "avgLogprob": -0.18,
+   "words": [
+    {
+     "start": 1.2,
+     "end": 1.56,
+     "text": "Alright,",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 1.58,
+     "end": 1.95,
+     "text": "we",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 1.97,
+     "end": 2.33,
+     "text": "said",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 2.35,
+     "end": 2.72,
+     "text": "we",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 2.74,
+     "end": 3.1,
+     "text": "would",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 3.12,
+     "end": 3.49,
+     "text": "come",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 3.51,
+     "end": 3.87,
+     "text": "back",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 3.89,
+     "end": 4.26,
+     "text": "to",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 4.28,
+     "end": 4.64,
+     "text": "the",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 4.66,
+     "end": 5.03,
+     "text": "onboarding",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 5.05,
+     "end": 5.41,
+     "text": "screen",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 5.43,
+     "end": 5.8,
+     "text": "once",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 5.82,
+     "end": 6.18,
+     "text": "the",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 6.2,
+     "end": 6.56,
+     "text": "copy",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 6.58,
+     "end": 6.95,
+     "text": "was",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 6.97,
+     "end": 7.33,
+     "text": "settled,",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 7.35,
+     "end": 7.72,
+     "text": "so",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 7.74,
+     "end": 8.1,
+     "text": "let",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 8.12,
+     "end": 8.49,
+     "text": "us",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 8.51,
+     "end": 8.87,
+     "text": "start",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 8.89,
+     "end": 9.26,
+     "text": "there.",
+     "avgLogprob": -0.18
+    }
+   ]
+  },
+  {
+   "id": 1,
+   "start": 9.73,
+   "end": 17.42,
+   "text": "The copy is settled. What is not settled is whether the permission prompt comes before or after the first recording.",
+   "avgLogprob": -0.18,
+   "words": [
+    {
+     "start": 9.73,
+     "end": 10.09,
+     "text": "The",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 10.11,
+     "end": 10.48,
+     "text": "copy",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 10.5,
+     "end": 10.86,
+     "text": "is",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 10.88,
+     "end": 11.25,
+     "text": "settled.",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 11.27,
+     "end": 11.63,
+     "text": "What",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 11.65,
+     "end": 12.01,
+     "text": "is",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 12.03,
+     "end": 12.4,
+     "text": "not",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 12.42,
+     "end": 12.78,
+     "text": "settled",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 12.8,
+     "end": 13.17,
+     "text": "is",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 13.19,
+     "end": 13.55,
+     "text": "whether",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 13.57,
+     "end": 13.94,
+     "text": "the",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 13.96,
+     "end": 14.32,
+     "text": "permission",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 14.34,
+     "end": 14.71,
+     "text": "prompt",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 14.73,
+     "end": 15.09,
+     "text": "comes",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 15.11,
+     "end": 15.48,
+     "text": "before",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 15.5,
+     "end": 15.86,
+     "text": "or",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 15.88,
+     "end": 16.25,
+     "text": "after",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 16.27,
+     "end": 16.63,
+     "text": "the",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 16.65,
+     "end": 17.01,
+     "text": "first",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 17.03,
+     "end": 17.4,
+     "text": "recording.",
+     "avgLogprob": -0.18
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "start": 17.87,
+   "end": 25.18,
+   "text": "Before. If someone taps record and then gets asked for the microphone, the first take is already half lost.",
+   "avgLogprob": -0.18,
+   "words": [
+    {
+     "start": 17.87,
+     "end": 18.23,
+     "text": "Before.",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 18.25,
+     "end": 18.62,
+     "text": "If",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 18.64,
+     "end": 19.0,
+     "text": "someone",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 19.02,
+     "end": 19.39,
+     "text": "taps",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 19.41,
+     "end": 19.77,
+     "text": "record",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 19.79,
+     "end": 20.16,
+     "text": "and",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 20.18,
+     "end": 20.54,
+     "text": "then",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 20.56,
+     "end": 20.93,
+     "text": "gets",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 20.95,
+     "end": 21.31,
+     "text": "asked",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 21.33,
+     "end": 21.7,
+     "text": "for",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 21.72,
+     "end": 22.08,
+     "text": "the",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 22.1,
+     "end": 22.46,
+     "text": "microphone,",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 22.48,
+     "end": 22.85,
+     "text": "the",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 22.87,
+     "end": 23.23,
+     "text": "first",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 23.25,
+     "end": 23.62,
+     "text": "take",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 23.64,
+     "end": 24.0,
+     "text": "is",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 24.02,
+     "end": 24.39,
+     "text": "already",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 24.41,
+     "end": 24.77,
+     "text": "half",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 24.79,
+     "end": 25.16,
+     "text": "lost.",
+     "avgLogprob": -0.18
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "start": 25.63,
+   "end": 34.47,
+   "text": "That is true, but asking for the microphone on a screen that has not explained anything yet is exactly the prompt people deny.",
+   "avgLogprob": -0.18,
+   "words": [
+    {
+     "start": 25.63,
+     "end": 25.99,
+     "text": "That",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 26.01,
+     "end": 26.38,
+     "text": "is",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 26.4,
+     "end": 26.76,
+     "text": "true,",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 26.78,
+     "end": 27.15,
+     "text": "but",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 27.17,
+     "end": 27.53,
+     "text": "asking",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 27.55,
+     "end": 27.91,
+     "text": "for",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 27.93,
+     "end": 28.3,
+     "text": "the",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 28.32,
+     "end": 28.68,
+     "text": "microphone",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 28.7,
+     "end": 29.07,
+     "text": "on",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 29.09,
+     "end": 29.45,
+     "text": "a",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 29.47,
+     "end": 29.84,
+     "text": "screen",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 29.86,
+     "end": 30.22,
+     "text": "that",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 30.24,
+     "end": 30.61,
+     "text": "has",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 30.63,
+     "end": 30.99,
+     "text": "not",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 31.01,
+     "end": 31.38,
+     "text": "explained",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 31.4,
+     "end": 31.76,
+     "text": "anything",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 31.78,
+     "end": 32.15,
+     "text": "yet",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 32.17,
+     "end": 32.53,
+     "text": "is",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 32.55,
+     "end": 32.91,
+     "text": "exactly",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 32.93,
+     "end": 33.3,
+     "text": "the",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 33.32,
+     "end": 33.68,
+     "text": "prompt",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 33.7,
+     "end": 34.07,
+     "text": "people",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 34.09,
+     "end": 34.45,
+     "text": "deny.",
+     "avgLogprob": -0.18
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "start": 34.92,
+   "end": 44.54,
+   "text": "So we explain first and ask second, on the same screen. One sentence about what the app does, then the button that triggers the prompt.",
+   "avgLogprob": -0.18,
+   "words": [
+    {
+     "start": 34.92,
+     "end": 35.29,
+     "text": "So",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 35.31,
+     "end": 35.67,
+     "text": "we",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 35.69,
+     "end": 36.06,
+     "text": "explain",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 36.08,
+     "end": 36.44,
+     "text": "first",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 36.46,
+     "end": 36.83,
+     "text": "and",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 36.85,
+     "end": 37.21,
+     "text": "ask",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 37.23,
+     "end": 37.6,
+     "text": "second,",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 37.62,
+     "end": 37.98,
+     "text": "on",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 38.0,
+     "end": 38.36,
+     "text": "the",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 38.38,
+     "end": 38.75,
+     "text": "same",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 38.77,
+     "end": 39.13,
+     "text": "screen.",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 39.15,
+     "end": 39.52,
+     "text": "One",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 39.54,
+     "end": 39.9,
+     "text": "sentence",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 39.92,
+     "end": 40.29,
+     "text": "about",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 40.31,
+     "end": 40.67,
+     "text": "what",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 40.69,
+     "end": 41.06,
+     "text": "the",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 41.08,
+     "end": 41.44,
+     "text": "app",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 41.46,
+     "end": 41.83,
+     "text": "does,",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 41.85,
+     "end": 42.21,
+     "text": "then",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 42.23,
+     "end": 42.6,
+     "text": "the",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 42.62,
+     "end": 42.98,
+     "text": "button",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 43.0,
+     "end": 43.36,
+     "text": "that",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 43.38,
+     "end": 43.75,
+     "text": "triggers",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 43.77,
+     "end": 44.13,
+     "text": "the",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 44.15,
+     "end": 44.52,
+     "text": "prompt.",
+     "avgLogprob": -0.18
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "start": 44.99,
+   "end": 52.68,
+   "text": "I can have that laid out by Thursday. Does it need the illustration, or can it ship with the wordmark?",
+   "avgLogprob": -0.18,
+   "words": [
+    {
+     "start": 44.99,
+     "end": 45.35,
+     "text": "I",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 45.37,
+     "end": 45.74,
+     "text": "can",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 45.76,
+     "end": 46.12,
+     "text": "have",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 46.14,
+     "end": 46.51,
+     "text": "that",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 46.53,
+     "end": 46.89,
+     "text": "laid",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 46.91,
+     "end": 47.28,
+     "text": "out",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 47.3,
+     "end": 47.66,
+     "text": "by",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 47.68,
+     "end": 48.05,
+     "text": "Thursday.",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 48.07,
+     "end": 48.43,
+     "text": "Does",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 48.45,
+     "end": 48.81,
+     "text": "it",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 48.83,
+     "end": 49.2,
+     "text": "need",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 49.22,
+     "end": 49.58,
+     "text": "the",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 49.6,
+     "end": 49.97,
+     "text": "illustration,",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 49.99,
+     "end": 50.35,
+     "text": "or",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 50.37,
+     "end": 50.74,
+     "text": "can",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 50.76,
+     "end": 51.12,
+     "text": "it",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 51.14,
+     "end": 51.51,
+     "text": "ship",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 51.53,
+     "end": 51.89,
+     "text": "with",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 51.91,
+     "end": 52.28,
+     "text": "the",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 52.3,
+     "end": 52.66,
+     "text": "wordmark?",
+     "avgLogprob": -0.18
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "start": 53.13,
+   "end": 60.82,
+   "text": "The wordmark is enough for now. Let us see whether the sentence carries it before we spend a week drawing.",
+   "avgLogprob": -0.18,
+   "words": [
+    {
+     "start": 53.13,
+     "end": 53.5,
+     "text": "The",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 53.52,
+     "end": 53.88,
+     "text": "wordmark",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 53.9,
+     "end": 54.26,
+     "text": "is",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 54.28,
+     "end": 54.65,
+     "text": "enough",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 54.67,
+     "end": 55.03,
+     "text": "for",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 55.05,
+     "end": 55.42,
+     "text": "now.",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 55.44,
+     "end": 55.8,
+     "text": "Let",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 55.82,
+     "end": 56.19,
+     "text": "us",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 56.21,
+     "end": 56.57,
+     "text": "see",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 56.59,
+     "end": 56.96,
+     "text": "whether",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 56.98,
+     "end": 57.34,
+     "text": "the",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 57.36,
+     "end": 57.73,
+     "text": "sentence",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 57.75,
+     "end": 58.11,
+     "text": "carries",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 58.13,
+     "end": 58.5,
+     "text": "it",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 58.52,
+     "end": 58.88,
+     "text": "before",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 58.9,
+     "end": 59.26,
+     "text": "we",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 59.28,
+     "end": 59.65,
+     "text": "spend",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 59.67,
+     "end": 60.03,
+     "text": "a",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 60.05,
+     "end": 60.42,
+     "text": "week",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 60.44,
+     "end": 60.8,
+     "text": "drawing.",
+     "avgLogprob": -0.18
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "start": 61.27,
+   "end": 69.73,
+   "text": "Agreed. I will write the sentence today and send it to both of you before I put it anywhere near the design.",
+   "avgLogprob": -0.18,
+   "words": [
+    {
+     "start": 61.27,
+     "end": 61.64,
+     "text": "Agreed.",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 61.66,
+     "end": 62.02,
+     "text": "I",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 62.04,
+     "end": 62.41,
+     "text": "will",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 62.43,
+     "end": 62.79,
+     "text": "write",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 62.81,
+     "end": 63.18,
+     "text": "the",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 63.2,
+     "end": 63.56,
+     "text": "sentence",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 63.58,
+     "end": 63.95,
+     "text": "today",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 63.97,
+     "end": 64.33,
+     "text": "and",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 64.35,
+     "end": 64.71,
+     "text": "send",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 64.73,
+     "end": 65.1,
+     "text": "it",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 65.12,
+     "end": 65.48,
+     "text": "to",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 65.5,
+     "end": 65.87,
+     "text": "both",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 65.89,
+     "end": 66.25,
+     "text": "of",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 66.27,
+     "end": 66.64,
+     "text": "you",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 66.66,
+     "end": 67.02,
+     "text": "before",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 67.04,
+     "end": 67.41,
+     "text": "I",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 67.43,
+     "end": 67.79,
+     "text": "put",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 67.81,
+     "end": 68.18,
+     "text": "it",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 68.2,
+     "end": 68.56,
+     "text": "anywhere",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 68.58,
+     "end": 68.95,
+     "text": "near",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 68.97,
+     "end": 69.33,
+     "text": "the",
+     "avgLogprob": -0.18
+    },
+    {
+     "start": 69.35,
+     "end": 69.71,
+     "text": "design.",
+     "avgLogprob": -0.18
+    }
+   ]
+  }
+ ]
+}

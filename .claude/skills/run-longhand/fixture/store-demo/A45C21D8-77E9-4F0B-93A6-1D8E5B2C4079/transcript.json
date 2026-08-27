@@ -1,0 +1,80 @@
+{
+ "recordingID": "A45C21D8-77E9-4F0B-93A6-1D8E5B2C4079",
+ "sourceHash": "0000000000000000000000000000000000000000000000002571b624dfac845c",
+ "duration": 43.76,
+ "language": "en",
+ "pipelineVersion": "1.1.0",
+ "models": {
+  "asr": "apple-speechtranscriber/ios26",
+  "diarization": "speakerkit/pyannote-community-1"
+ },
+ "mergeParams": {
+  "boundaryToleranceMs": 250,
+  "turnGapSeconds": 1
+ },
+ "speakers": {
+  "SPEAKER_00": {
+   "displayName": "Me",
+   "confirmedByUser": true
+  },
+  "SPEAKER_01": {
+   "displayName": "Speaker 2"
+  }
+ },
+ "turns": [
+  {
+   "id": 0,
+   "cluster": "SPEAKER_01",
+   "speaker": "Speaker 2",
+   "start": 1.2,
+   "end": 8.12,
+   "overlapped": false,
+   "text": "Thanks for making the time. I have about twenty minutes and then I have to be somewhere else."
+  },
+  {
+   "id": 1,
+   "cluster": "SPEAKER_00",
+   "speaker": "Me",
+   "start": 8.57,
+   "end": 17.03,
+   "overlapped": false,
+   "text": "Twenty is plenty. I wanted to walk through the two things you flagged in writing and see which one is actually urgent."
+  },
+  {
+   "id": 2,
+   "cluster": "SPEAKER_01",
+   "speaker": "Speaker 2",
+   "start": 17.48,
+   "end": 24.02,
+   "overlapped": false,
+   "text": "The reporting one is urgent. The export format is something we can live with until the spring."
+  },
+  {
+   "id": 3,
+   "cluster": "SPEAKER_00",
+   "speaker": "Me",
+   "start": 24.47,
+   "end": 31.78,
+   "overlapped": false,
+   "text": "Good, that is the answer I was hoping for, because the reporting change is much smaller than it looks."
+  },
+  {
+   "id": 4,
+   "cluster": "SPEAKER_01",
+   "speaker": "Speaker 2",
+   "start": 32.23,
+   "end": 33.83,
+   "overlapped": false,
+   "text": "How small?"
+  },
+  {
+   "id": 5,
+   "cluster": "SPEAKER_00",
+   "speaker": "Me",
+   "start": 34.28,
+   "end": 42.36,
+   "overlapped": false,
+   "text": "Days, not weeks. The numbers are already being computed. What is missing is the page that shows them side by side."
+  }
+ ]
+}

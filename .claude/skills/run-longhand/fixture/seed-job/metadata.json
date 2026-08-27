@@ -1,0 +1,13 @@
+{
+  "channelCount" : 1,
+  "channelRMSEnergy" : [
+    0.15975480518211158
+  ],
+  "declaredLanguage" : "he",
+  "durationSeconds" : 8.1985625,
+  "importedAt" : 808764926.300078,
+  "sourceExtension" : "caf",
+  "sourceFileSize" : 727208,
+  "sourceFormat" : "caf",
+  "sourceHash" : "3600ed69bb29a5553a9f7c5d84795459303122c4d4664c36c460d35a67ddb37f"
+}

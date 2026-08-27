@@ -1,0 +1,138 @@
+{
+  "params" : {
+    "boundaryTolerance" : 0.25,
+    "nearestIntervalMaxGap" : 2,
+    "smoothIslands" : true,
+    "turnGap" : 1
+  },
+  "words" : [
+    {
+      "decision" : "segmentVote",
+      "end" : 0.4000000059604645,
+      "overlapped" : false,
+      "speaker" : "SPEAKER_00",
+      "start" : 0.019999999552965164,
+      "text" : "שלום,"
+    },
+    {
+      "decision" : "segmentVote",
+      "end" : 0.9399999976158142,
+      "overlapped" : false,
+      "speaker" : "SPEAKER_00",
+      "start" : 0.5600000023841858,
+      "text" : "זו"
+    },
+    {
+      "decision" : "segmentVote",
+      "end" : 1,
+      "overlapped" : false,
+      "speaker" : "SPEAKER_00",
+      "start" : 0.9399999976158142,
+      "text" : "היא"
+    },
+    {
+      "decision" : "segmentVote",
+      "end" : 1.399999976158142,
+      "overlapped" : false,
+      "speaker" : "SPEAKER_00",
+      "start" : 1,
+      "text" : "בדיקת"
+    },
+    {
+      "decision" : "segmentVote",
+      "end" : 1.8600000143051147,
+      "overlapped" : false,
+      "speaker" : "SPEAKER_00",
+      "start" : 1.399999976158142,
+      "text" : "תמלול."
+    },
+    {
+      "decision" : "segmentVote",
+      "end" : 2.5199999809265137,
+      "overlapped" : false,
+      "speaker" : "SPEAKER_00",
+      "start" : 2.319999933242798,
+      "text" : "1,"
+    },
+    {
+      "decision" : "segmentVote",
+      "end" : 3.1600000858306885,
+      "overlapped" : false,
+      "speaker" : "SPEAKER_00",
+      "start" : 2.940000057220459,
+      "text" : "2,"
+    },
+    {
+      "decision" : "segmentVote",
+      "end" : 3.9200000762939453,
+      "overlapped" : false,
+      "speaker" : "SPEAKER_00",
+      "start" : 3.5399999618530273,
+      "text" : "3,"
+    },
+    {
+      "decision" : "segmentVote",
+      "end" : 4.619999885559082,
+      "overlapped" : false,
+      "speaker" : "SPEAKER_00",
+      "start" : 4.360000133514404,
+      "text" : "4,"
+    },
+    {
+      "decision" : "segmentVote",
+      "end" : 5.320000171661377,
+      "overlapped" : false,
+      "speaker" : "SPEAKER_00",
+      "start" : 4.960000038146973,
+      "text" : "5."
+    },
+    {
+      "decision" : "segmentVote",
+      "end" : 6.079999923706055,
+      "overlapped" : false,
+      "speaker" : "SPEAKER_00",
+      "start" : 5.840000152587891,
+      "text" : "אני"
+    },
+    {
+      "decision" : "segmentVote",
+      "end" : 6.559999942779541,
+      "overlapped" : false,
+      "speaker" : "SPEAKER_00",
+      "start" : 6.079999923706055,
+      "text" : "מקליט"
+    },
+    {
+      "decision" : "segmentVote",
+      "end" : 6.760000228881836,
+      "overlapped" : false,
+      "speaker" : "SPEAKER_00",
+      "start" : 6.559999942779541,
+      "text" : "את"
+    },
+    {
+      "decision" : "segmentVote",
+      "end" : 7.260000228881836,
+      "overlapped" : false,
+      "speaker" : "SPEAKER_00",
+      "start" : 6.760000228881836,
+      "text" : "ההודעה"
+    },
+    {
+      "decision" : "segmentVote",
+      "end" : 7.519999980926514,
+      "overlapped" : false,
+      "speaker" : "SPEAKER_00",
+      "start" : 7.260000228881836,
+      "text" : "הזאת"
+    },
+    {
+      "decision" : "segmentVote",
+      "end" : 8.0600004196167,
+      "overlapped" : false,
+      "speaker" : "SPEAKER_00",
+      "start" : 7.519999980926514,
+      "text" : "בעברית."
+    }
+  ]
+}
