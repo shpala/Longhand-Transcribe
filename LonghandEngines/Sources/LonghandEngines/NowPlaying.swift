@@ -58,6 +58,13 @@ final class NowPlaying {
         #endif
     }
 
+    /// A take is starting: whoever holds the controls pauses and lets them
+    /// go, so the Lock Screen shows the recording rather than a play button
+    /// that would take the session from the microphone.
+    func suspendOwner() {
+        owner?.yieldNowPlaying()
+    }
+
     func release(_ player: TranscriptPlayer) {
         guard owner === player else { return }
         owner = nil

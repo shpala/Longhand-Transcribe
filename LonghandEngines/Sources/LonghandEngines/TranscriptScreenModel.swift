@@ -178,8 +178,17 @@ public final class TranscriptScreenModel {
     }
 
     public func rename(cluster: String, to newName: String) throws {
+        let newName = Self.cleanedName(newName)
+        guard !newName.isEmpty else { return }
         try JobPipeline.relabelSpeaker(files: files, cluster: cluster, newName: newName)
         load()
+    }
+
+    /// A name as typed, without the space a keyboard's autocomplete leaves
+    /// after it. The voice store matches profiles by exact name, so "Dana "
+    /// would otherwise enroll a second Dana rather than a second sample.
+    public static func cleanedName(_ name: String) -> String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// One tap of an "auto" chip: the §13.1 "the user said" bit flips.
@@ -197,7 +206,9 @@ public final class TranscriptScreenModel {
     }
 
     public func enrollVoice(cluster: String, as name: String) {
-        guard let diarization = try? AtomicFile.readJSON(DiarizationResult.self, from: files.diarization, stage: "DIARIZED"),
+        let name = Self.cleanedName(name)
+        guard !name.isEmpty,
+              let diarization = try? AtomicFile.readJSON(DiarizationResult.self, from: files.diarization, stage: "DIARIZED"),
               let centroid = diarization.centroids?[cluster] else { return }
         SpeakerProfileStore.enroll(displayName: name, embedding: centroid,
                                    modelIdentifier: diarization.modelIdentifier)

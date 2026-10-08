@@ -50,6 +50,35 @@ public final class TranscriptPlayer {
 
     public var isLoaded: Bool { player != nil }
 
+    // MARK: - Recording
+
+    /// True while a take is being recorded. A transcript playing behind the
+    /// record sheet would be captured into the take through the speaker, and
+    /// a play press from the Lock Screen or a headset would switch the audio
+    /// session from recording to playback under the microphone. So the
+    /// recorder announces itself: whatever is playing pauses and gives up the
+    /// system controls, and `play()` refuses until the take is over.
+    public private(set) static var isSuspendedForRecording = false
+
+    public static func suspendForRecording() {
+        isSuspendedForRecording = true
+        NowPlaying.shared.suspendOwner()
+    }
+
+    public static func resumeAfterRecording() {
+        isSuspendedForRecording = false
+    }
+
+    /// Pauses and lets go of the Lock Screen without unloading, so the screen
+    /// keeps its playback bar and play works again once recording ends.
+    func yieldNowPlaying() {
+        pause()
+        if holdsNowPlaying {
+            holdsNowPlaying = false
+            NowPlaying.shared.release(self)
+        }
+    }
+
     // MARK: - Loading
 
     @discardableResult
@@ -61,8 +90,11 @@ public final class TranscriptPlayer {
         // force when it is built, and one built under the default category is
         // never eligible for the Lock Screen's Now Playing controls. Setting
         // the category without activating the session leaves other apps'
-        // audio alone until play is actually pressed.
-        try? AVAudioSession.sharedInstance().setCategory(.playback)
+        // audio alone until play is actually pressed. Not while a take is
+        // recording: the session is the microphone's then.
+        if !Self.isSuspendedForRecording {
+            try? AVAudioSession.sharedInstance().setCategory(.playback)
+        }
         #endif
         guard let loaded = try? AVAudioPlayer(contentsOf: url) else { return false }
         loaded.enableRate = true
@@ -96,7 +128,7 @@ public final class TranscriptPlayer {
     }
 
     public func play() {
-        guard let player else { return }
+        guard let player, !Self.isSuspendedForRecording else { return }
         activateSessionIfNeeded()
         player.rate = Float(rate)
         player.play()

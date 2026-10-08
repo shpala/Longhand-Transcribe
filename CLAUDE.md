@@ -133,6 +133,15 @@ Three layers with hard boundaries:
   on load, and only its own `stop()` releases them. The `.playback` category
   is set before the `AVAudioPlayer` is built, or its queue is never eligible
   for the Lock Screen.
+  iOS capture is `RecorderService`: an `AVAudioEngine` tap into a fragmented
+  AAC m4a (`AVAssetWriter`, 5 s fragments) under `Documents/Takes`, with a
+  JSON sidecar for markers and location, so a kill mid-take loses one
+  fragment at most and the next launch imports what is left. Takes an import
+  refused stay listed as "Unsaved takes". The recorder halts itself (file
+  kept, Stop & Save still works) on writer failure, an engine it cannot
+  restart, or under 50 MB free. A take starting calls
+  `TranscriptPlayer.suspendForRecording()`, which pauses and releases Now
+  Playing and makes `play()` refuse until the take ends.
   Watch: capture UI + `WCSession` hand-off, plus
   `LonghandComplication/`, a WidgetKit extension embedded in the watch app
   whose tap opens `longhand://record` to start a take. Mac:

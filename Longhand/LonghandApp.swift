@@ -32,10 +32,12 @@ struct LonghandApp: App {
         #if DEBUG
         if CommandLine.arguments.contains("--uitest-reset") {
             try? FileManager.default.removeItem(at: ImportService.recordingsRoot)
+            try? FileManager.default.removeItem(at: RecorderService.takesDirectory)
             SpeakerProfileStore.deleteAll()
         }
         UITestSupport.seedSynthTranscriptIfRequested()
         UITestSupport.parkJobsIfRequested()
+        UITestSupport.stageUnsavedTakeIfRequested()
         UITestSupport.requestRecordingIfAsked()
         #endif
     }

@@ -126,8 +126,14 @@ struct ModelSettingsSection: View {
     }
 
     private func delete(_ variant: WhisperModelVariant) {
-        WhisperKitEngine.delete(variant)
         pendingDelete = nil
+        // Checked again here, not only on the button: a recording can start
+        // while the confirmation is up, and a run holds its weights open.
+        guard !libraryIsBusy else {
+            error = "A recording is being transcribed. Delete the model once it has finished."
+            return
+        }
+        WhisperKitEngine.delete(variant)
         refreshToken += 1
     }
 
@@ -150,22 +156,37 @@ final class ModelDownloadState {
     static let shared = ModelDownloadState()
 
     private var progressByVariant: [String: Double] = [:]
+    /// Which download each progress callback belongs to. A callback hops to
+    /// the main actor, and one still in flight when the download finished
+    /// used to put the entry back after `defer` had cleared it, leaving the
+    /// bar up and the buttons disabled until the next launch.
+    private var tokenByVariant: [String: UInt64] = [:]
+    private var nextToken: UInt64 = 0
     var isDownloading: Bool { !progressByVariant.isEmpty }
 
     func fraction(for variant: WhisperModelVariant) -> Double? {
         progressByVariant[variant.rawValue]
     }
 
-
     /// A message on failure, nil on success. A second call for a variant
     /// already downloading is ignored.
     func download(_ variant: WhisperModelVariant) async -> String? {
-        guard progressByVariant[variant.rawValue] == nil else { return nil }
-        progressByVariant[variant.rawValue] = 0
-        defer { progressByVariant[variant.rawValue] = nil }
+        let key = variant.rawValue
+        guard progressByVariant[key] == nil else { return nil }
+        nextToken &+= 1
+        let token = nextToken
+        tokenByVariant[key] = token
+        progressByVariant[key] = 0
+        defer {
+            progressByVariant[key] = nil
+            tokenByVariant[key] = nil
+        }
         do {
             try await WhisperKitEngine.prefetch(variant) { [weak self] value in
-                Task { @MainActor in self?.progressByVariant[variant.rawValue] = value }
+                Task { @MainActor in
+                    guard let self, self.tokenByVariant[key] == token else { return }
+                    self.progressByVariant[key] = value
+                }
             }
             return nil
         } catch {

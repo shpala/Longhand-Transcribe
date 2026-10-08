@@ -135,8 +135,16 @@ struct TranscriptView: View {
                     placement: .navigationBarDrawer(displayMode: .always),
                     prompt: "Find in transcript")
         .onChange(of: query) { _, _ in
-            hitIndex = 0
-            focusCurrentHit()
+            // Typing lands on the match nearest the playhead and scrolls to
+            // it. The audio stays where it is: seeking on every keystroke
+            // threw playback back to the first match of each partial word.
+            hitIndex = nearestHitIndex()
+            focusCurrentHit(seek: false)
+        }
+        // The Lock Screen and a headset can change the speed too; the
+        // capsule and the saved default follow whatever the player is at.
+        .onChange(of: player.rate) { _, rate in
+            if playbackRate != rate { playbackRate = rate }
         }
         .toolbar {
             if transcript != nil {
@@ -437,12 +445,25 @@ struct TranscriptView: View {
         return end + "…"
     }
 
-    private func focusCurrentHit() {
+    /// Scrolls to the current match and, on Next and Previous, moves the
+    /// audio to it and tells VoiceOver where it is in the list.
+    private func focusCurrentHit(seek: Bool) {
         let hits = self.hits
         guard !hits.isEmpty else { return }
-        let hit = hits[min(hitIndex, hits.count - 1)]
+        let index = min(hitIndex, hits.count - 1)
+        let hit = hits[index]
         currentTurn = hit.turnIndex
+        guard seek else { return }
         if player.isLoaded { player.seek(to: hit.start) }
+        AccessibilityNotification.Announcement("Match \(index + 1) of \(hits.count)").post()
+    }
+
+    /// The match at or after the playhead, so a search while listening picks
+    /// up from here rather than from the top.
+    private func nearestHitIndex() -> Int {
+        let hits = self.hits
+        guard player.isLoaded, player.currentTime > 0 else { return 0 }
+        return hits.firstIndex { $0.start >= player.currentTime } ?? 0
     }
 
     @ViewBuilder
@@ -455,7 +476,7 @@ struct TranscriptView: View {
             Spacer(minLength: 0)
             Button {
                 hitIndex = (hitIndex - 1 + hits.count) % max(1, hits.count)
-                focusCurrentHit()
+                focusCurrentHit(seek: true)
             } label: {
                 Image(systemName: "chevron.up").frame(width: 44, height: 36)
             }
@@ -463,7 +484,7 @@ struct TranscriptView: View {
             .accessibilityLabel("Previous match")
             Button {
                 hitIndex = (hitIndex + 1) % max(1, hits.count)
-                focusCurrentHit()
+                focusCurrentHit(seek: true)
             } label: {
                 Image(systemName: "chevron.down").frame(width: 44, height: 36)
             }
@@ -926,18 +947,6 @@ private struct PlaybackBar: View {
         .padding(.vertical, 8)
         .background(.bar)
     }
-}
-
-// MARK: - Share sheet
-
-private struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - Rename sheet

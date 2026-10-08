@@ -46,6 +46,36 @@ extension UITestSupport {
         }
     }
 
+    /// `--uitest-unsaved-take`: leaves a take in `Documents/Takes` the way a
+    /// refused import does (sidecar counting one attempt), so the "Unsaved
+    /// takes" row and its Save button are reachable without filling the disk.
+    /// Three seconds of tone, written synchronously: the library reads the
+    /// folder once as it appears, so the file has to be there before it does.
+    static func stageUnsavedTakeIfRequested() {
+        guard ProcessInfo.processInfo.arguments.contains("--uitest-unsaved-take") else { return }
+        let directory = RecorderService.takesDirectory
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appendingPathComponent("Recording uitest.m4a")
+        try? FileManager.default.removeItem(at: url)
+        guard let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 48_000,
+                                         channels: 1, interleaved: false),
+              let file = try? AVAudioFile(forWriting: url, settings: [
+                  AVFormatIDKey: kAudioFormatMPEG4AAC,
+                  AVSampleRateKey: 48_000,
+                  AVNumberOfChannelsKey: 1,
+              ]),
+              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 48_000 * 3) else { return }
+        buffer.frameLength = buffer.frameCapacity
+        if let samples = buffer.floatChannelData?[0] {
+            for i in 0..<Int(buffer.frameLength) {
+                samples[i] = Float(sin(Double(i) * 2 * .pi * 440 / 48_000)) * 0.3
+            }
+        }
+        try? file.write(from: buffer)
+        let sidecar = TakeSidecar(startedAt: Date().addingTimeInterval(-600), markers: [1.0], importAttempts: 1)
+        try? AtomicFile.writeJSON(sidecar, to: RecorderService.sidecarURL(for: url))
+    }
+
     /// `--uitest-request-record`: makes the request Siri, a shortcut, the
     /// Action Button or the Control Center control makes, before any view
     /// exists, as a cold launch from any of them does. What the intents

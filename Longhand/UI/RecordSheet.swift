@@ -67,12 +67,25 @@ struct RecordSheet: View {
                             .font(.subheadline)
                             .foregroundStyle(statusColor)
                             .symbolEffect(.pulse, isActive: recorder.state == .recording)
+                        // Which microphone: a take through the laptop's mic
+                        // when the headset was meant is better found out now.
+                        if let input = recorder.inputName,
+                           recorder.state == .recording || recorder.state == .paused {
+                            Text(input)
+                                .font(.caption)
+                                .foregroundStyle(cream.opacity(0.6))
+                                .accessibilityLabel("Microphone: \(input)")
+                        }
                         if recorder.state == .recording || recorder.state == .paused {
                             optionsButton
                         }
                     }
                     if let error = recorder.lastError {
-                        Text(error).font(.footnote).foregroundStyle(.red)
+                        Text(error)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .multilineTextAlignment(.center)
+                            .accessibilityIdentifier("record-error")
                     }
                 }
                 Spacer()
@@ -117,8 +130,17 @@ struct RecordSheet: View {
         .sensoryFeedback(.impact(weight: .medium), trigger: recorder.state)
         .sensoryFeedback(.success, trigger: markerHaptic) { _, new in new > 0 }
         .onChange(of: recorder.state) { _, _ in syncLiveActivity() }
-        .onChange(of: recorder.isInterrupted) { _, _ in syncLiveActivity() }
-        .onChange(of: markers.count) { _, _ in syncLiveActivity() }
+        .onChange(of: recorder.isInterrupted) { _, interrupted in
+            // A call that cut in with the phone in a pocket leaves a gap the
+            // transcript cannot show. A flag at the point marks where it is.
+            if interrupted { mark() }
+            syncLiveActivity()
+        }
+        .onChange(of: recorder.isHalted) { _, _ in syncLiveActivity() }
+        .onChange(of: markers.count) { _, _ in
+            recorder.updateSidecar(markers: markers)
+            syncLiveActivity()
+        }
         .onAppear {
             LiveRecordingControls.handler = { command in await perform(command) }
         }
@@ -132,6 +154,7 @@ struct RecordSheet: View {
                 syncLiveActivity()
                 if LocationCapture.isEnabled {
                     capturedLocation = await locationCapture.capture()
+                    recorder.updateSidecar(location: capturedLocation)
                 }
             } else {
                 permissionDenied = true
@@ -152,12 +175,16 @@ struct RecordSheet: View {
                 markButton
                 stopButton
             case .paused:
-                Button {
-                    recorder.resume()
-                } label: {
-                    Label("Resume", systemImage: "record.circle").font(.title2)
+                // A halted take has nowhere to resume to; what it has is
+                // saved by the same Stop & Save.
+                if !recorder.isHalted {
+                    Button {
+                        Task { await recorder.resume() }
+                    } label: {
+                        Label("Resume", systemImage: "record.circle").font(.title2)
+                    }
+                    .foregroundStyle(cream)
                 }
-                .foregroundStyle(cream)
                 // Safe while paused: `currentTime` freezes at the pause point
                 // and paused time never counts, so the flag still lands on the
                 // transcript's clock.
@@ -236,7 +263,7 @@ struct RecordSheet: View {
     private func perform(_ command: LiveRecordingCommand) async {
         switch command {
         case .pause: recorder.pause()
-        case .resume: recorder.resume()
+        case .resume: await recorder.resume()
         case .mark:
             if recorder.state == .recording || recorder.state == .paused { mark() }
         case .stop: await stopAndSave()
@@ -294,8 +321,11 @@ struct RecordSheet: View {
         case .idle: return recorder.lastError == nil ? "Starting…" : "Couldn't start"
         case .recording: return "Recording" + flags
         // Interrupted is not a deliberate pause: the system took the mic, and
-        // nothing has been captured since.
-        case .paused: return (recorder.isInterrupted ? "Interrupted, not recording" : "Paused") + flags
+        // nothing has been captured since. Halted is the take stopping
+        // itself, and the message under it says why.
+        case .paused:
+            if recorder.isHalted { return "Stopped, take so far is safe" + flags }
+            return (recorder.isInterrupted ? "Interrupted, not recording" : "Paused") + flags
         case .finished: return "Saved"
         }
     }
@@ -303,7 +333,7 @@ struct RecordSheet: View {
     private var statusIcon: String {
         switch recorder.state {
         case .recording: "record.circle"
-        case .paused: recorder.isInterrupted ? "exclamationmark.triangle.fill" : "pause.circle"
+        case .paused: recorder.isInterrupted || recorder.isHalted ? "exclamationmark.triangle.fill" : "pause.circle"
         case .idle: recorder.lastError == nil ? "circle" : "exclamationmark.triangle.fill"
         default: "circle"
         }

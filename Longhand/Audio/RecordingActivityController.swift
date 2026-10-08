@@ -55,7 +55,8 @@ extension RecordingActivityAttributes.ContentState {
     init(recorder: RecorderService, markerCount: Int) {
         let phase: Phase
         switch recorder.state {
-        case .paused: phase = recorder.isInterrupted ? .interrupted : .paused
+        case .paused:
+            phase = recorder.isHalted ? .halted : recorder.isInterrupted ? .interrupted : .paused
         default: phase = .recording
         }
         self.init(phase: phase, elapsed: recorder.currentTime, asOf: Date(),

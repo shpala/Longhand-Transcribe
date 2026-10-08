@@ -103,7 +103,7 @@ speaker names confirmed and a few turns corrected, settles both at once.
 | Transcript editing (addition) | `JobPipeline.editTurnText`/`clearTurnEdit`, editor sheets on both shells | whole-turn text; edited turns are marked and fall back to a turn-level highlight since word timings no longer describe them; revert restores the derived text |
 | Per-turn speaker reassignment (addition) | `JobPipeline.assignTurn`, `Turn.assignedCluster`, speaker chip menu in both shells | one passage moves without touching the diarizer's claim, so §9.2 enrollment eligibility and centroid lookup are unaffected. The chip is a scope chooser: "this passage is someone else" versus "rename, N passages", the count naming a reach the chip cannot otherwise show |
 | User-defined speakers (addition) | `UserOverlay.mintSpeakerCluster()` / `isUserDefined`, `USER_<hex>` keys | the diarizer folding a third person into someone else's cluster leaves nothing to reassign *to*; "Someone else…" mints a cluster the overlay seeds into the speakers table. No centroid exists for it, so `canEnroll` refuses enrollment without a special case: an invented speaker is a label, never a voiceprint. Undoing the last passage prunes the orphaned name |
-| Markers (addition) | flag button on all three record surfaces → `ImportService(markers:)` → overlay → transcript + Markdown | `AVAudioRecorder.currentTime` excludes paused time, so marker times share the transcript's clock |
+| Markers (addition) | flag button on all three record surfaces → `ImportService(markers:)` → overlay → transcript + Markdown | the recorders' clocks exclude paused time (iOS counts frames written; the Mac and watch use `AVAudioRecorder.currentTime`), so marker times share the transcript's clock |
 | Per-word tap-to-seek (addition) | `LonghandEngines/Sources/LonghandEngines/WordTapText.swift` (`WordFrameRenderer`, `WordFrames`) | words stay in one `Text` so SwiftUI keeps bidi reordering intact; the renderer reports each word's frame and also draws the active word's wash |
 | Playback (addition) | `LonghandEngines/Sources/LonghandEngines/TranscriptPlayer.swift` | one player for both shells: speed 0.75×-2× (remembered), ±15 s skip, clock ticking only while playing |
 | §15.2 ⟨R-16⟩ rendering at scale | `LonghandKit/Sources/LonghandKit/Transcript/TranscriptIndex.swift` + per-row observation | binary-search time→turn with a forward cursor, word slices precomputed at load (also fixes a word being claimed by two abutting turns); the 10 Hz repaint is confined to the active row instead of the whole list |
@@ -118,7 +118,7 @@ speaker names confirmed and a few turns corrected, settles both at once.
 | §13.4 retention | `JobPipeline` + `JobFiles.deleteTransientArtifacts` | normalized PCM deleted at COMPLETE |
 | §15.1-15.3 UI | `Longhand/UI/*` | library grouped by day ("Today"…), lazy transcript view, rename-without-inference, assign-to-enrolled-person in the rename sheet, degradation banners, raw-PCM confirm dialog, delete confirmation, import-failure alerts, auto-resume of INTERRUPTED jobs, Settings screen (transcription defaults, Enrolled Voices, §13.4 disk usage), `reidentify` wired to UI (per-job context menu, transcript actions menu, all-jobs from Enrolled Voices) |
 | §14.3 logging | (by construction) | nothing logs transcript text or filenames; no logging framework wired yet |
-| In-app mic recording (addition, not in the doc) | `Longhand/Audio/RecorderService.swift`, `UI/RecordSheet.swift` | records meetings/notes via AVAudioRecorder (AAC m4a) and feeds the normal import pipeline; §2.2's *call*-recording non-goal is untouched. Temp takes are deleted on cancel and after the protected copy is made. Live level meter (Canvas, because subview churn starves UI-test quiescence). Stop & Save starts processing immediately with persisted defaults; long-press offers the §7.1 options sheet. Permission-denied state links to Settings |
+| In-app mic recording (addition, not in the doc) | `Longhand/Audio/RecorderService.swift`, `UI/RecordSheet.swift` | records meetings/notes through an `AVAudioEngine` input tap into a fragmented AAC m4a (`AVAssetWriter`) under `Documents/Takes`, and feeds the normal import pipeline; §2.2's *call*-recording non-goal is untouched. A kill mid-take costs at most one fragment, and the next launch imports what is left ("A take that survives a kill" below). Takes are deleted on cancel and after the protected copy is made; one an import refused stays listed as unsaved. Live level meter (Canvas, because subview churn starves UI-test quiescence). Stop & Save starts processing immediately with persisted defaults; long-press offers the §7.1 options sheet. Permission-denied state links to Settings |
 | §15.2 playback | `Longhand/UI/TranscriptView.swift` (`PlaybackTurnTracker`, `PlaybackBar`), `LonghandEngines/Sources/LonghandEngines/TranscriptPlayer.swift` | AVAudioPlayer on the retained original; tap a turn to seek+play; the playhead is published only while audio moves, and only the playing row reads it, so a tick repaints one row rather than the list |
 | Speaker chips + one-tap confirm | `UI/TranscriptView.swift` | speaker names are tappable chips; "auto" chips offer one-tap confirm (flips `confirmedByUser`, §13.1) or rename |
 | §13.2 explicit re-run | `JobPipeline.retranscribe`, `RetranscribeMenu` | COMPLETE→PREPARED re-entry edge; deletes ASR+downstream checkpoints, keeps original+metadata; offered on rows and in the transcript menu. Validates the state transition **before** rewriting metadata or deleting anything, and `JobLibraryModel.retranscribe` refuses while the job is running; otherwise a rejected call still changed the language and destroyed a live job's checkpoints |
@@ -1257,6 +1257,77 @@ plays the newest finished recording muted through a debug-only
 build tried, and the test skips there. On the Mac, Control Center's Now
 Playing showed the recording with the mark and transport controls, and the
 keyboard's play/pause key paused it.
+
+## A take that survives a kill (8 Oct 2026)
+
+An iOS review of the recording path found that a crash, a memory kill or a
+dead battery an hour into a meeting lost the whole take. `AVAudioRecorder`
+wrote an AAC `.m4a` into `tmp/`, and an MPEG-4 file gets the index that makes
+it readable only when `stop()` runs; the next launch did nothing but end the
+orphaned Live Activity. Four related gaps went with it: a take whose import
+failed (a full disk, usually) was gone with the sheet; the recorder had no
+delegate and no route or media-reset observer, so a full disk or a failed
+encoder left the sheet saying Recording; a transcript playing behind the sheet
+was captured into the take through the speaker, and a Lock Screen play press
+mid-take switched the session out from under the microphone; and a job the
+system interrupted resumed only on a cold launch.
+
+**The file.** `RecorderService` now captures through an `AVAudioEngine` input
+tap, converts whatever the hardware gives to 48 kHz mono and hands it to an
+`AVAssetWriter` writing AAC at 96 kbps with `movieFragmentInterval` set to
+5 s. Measured on macOS with the same AVFoundation before committing to it: a
+writer killed without `finishWriting` after 7 s of audio, with 2 s fragments,
+left a file that `AVAudioFile`, `AVAudioPlayer` and `AVAssetReader` all opened
+at 6.01 s. Those three are every reader the app has (the normalizer, playback,
+and `ImportService`'s duration probe), so a kill costs at most one fragment.
+Time is counted in frames written, so a pause is simply absent from the file
+and markers keep the transcript's clock, as they did with
+`AVAudioRecorder.currentTime`. A user pause leaves the engine running and
+drops buffers; a system interruption stops it, and `resume()` reactivates the
+session and restarts it on the recorder's serial audio queue, where it was a
+synchronous `setActive` on the main thread outside the queue before. A route
+change that stops the engine (`AVAudioEngineConfigurationChange`) reinstalls
+the tap with the new input format; a media services reset builds a new engine
+and keeps the writer, which never noticed.
+
+**Where it lives.** `Documents/Takes`, not `tmp/`, which the system may purge,
+with a JSON sidecar beside each take holding what the file cannot: the start
+time, the markers as they are pressed, and the location fix. The library
+lists everything in that folder that no live recorder owns as "Unsaved takes"
+(save, share the audio, delete), and on the first appearance of each launch
+imports, once, any take whose sidecar records no import attempt. A take whose
+import failed is not retried on its own: the alert said why, and the row
+stays until the person decides. `--uitest-reset` wipes the folder with the
+library.
+
+**Halting.** The recorder stops itself, keeping the file, when the writer
+refuses a buffer, when the engine cannot be brought back, or when free space
+falls under 50 MB (checked every few seconds from the level loop; a take
+refuses to start under 200 MB). `isHalted` is a paused take with no Resume:
+the sheet says "Stopped, take so far is safe" with the reason under it, the
+Live Activity gets a `halted` phase with Mark and Stop only, and Stop & Save
+saves what was captured. The sheet also names the microphone in use, from the
+session's current route, so a take through the laptop's mic when the headset
+was meant is seen before it is over, and an interruption drops a marker at
+the point the audio stops, since the transcript cannot show a gap.
+
+**Playback during a take.** `TranscriptPlayer.suspendForRecording()` pauses
+whatever holds Now Playing, releases the Lock Screen controls, and makes
+`play()` refuse until `resumeAfterRecording()`; `load()` leaves the session's
+category alone meanwhile. The recorder calls both.
+
+Smaller fixes from the same review: the library re-runs `resumeUnfinished`
+when the scene becomes active and offers Retry on an interrupted row, rather
+than promising a resume that only a cold launch delivered; a model download
+whose last progress callback landed after the `defer` left the bar up until
+the next launch, and progress updates now carry a token for the download they
+belong to; Delete Model rechecks for a running job inside the confirmed
+action; Find no longer seeks the audio on every keystroke (it scrolls to the
+match nearest the playhead, and only Next and Previous seek, announcing "Match
+n of m" to VoiceOver); a speed change from the Lock Screen now reaches the
+capsule and the saved default; and speaker names are trimmed before rename and
+enrollment, since a trailing space enrolled a second "Dana" rather than a
+second sample.
 
 ## Open [VERIFY] items carried from the doc
 

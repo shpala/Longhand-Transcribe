@@ -15,6 +15,9 @@ struct RecordingActivityAttributes: ActivityAttributes {
             /// The system took the microphone (a call, Siri). Not a choice the
             /// user made, and nothing is being captured.
             case interrupted
+            /// The take stopped itself (disk full, encoder failure) and
+            /// cannot go on. Everything before it is kept; Stop saves it.
+            case halted
         }
 
         var phase: Phase

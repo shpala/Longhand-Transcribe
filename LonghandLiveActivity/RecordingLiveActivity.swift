@@ -122,7 +122,8 @@ private struct StatusLabel: View {
         switch phase {
         case .recording: return "Recording" + flags
         case .paused: return "Paused" + flags
-        case .interrupted: return "Interrupted, not recording"
+        case .interrupted: return "Interrupted, not recording" + flags
+        case .halted: return "Stopped, open Longhand" + flags
         }
     }
 }
@@ -132,10 +133,14 @@ private struct Controls: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            if state.phase == .recording {
+            switch state.phase {
+            case .recording:
                 control("Pause", "pause.fill", PauseRecordingIntent())
-            } else {
+            case .paused, .interrupted:
                 control("Resume", "record.circle", ResumeRecordingIntent())
+            case .halted:
+                // Nothing to resume into; the take so far is what there is.
+                EmptyView()
             }
             control("Mark", "flag.fill", MarkRecordingIntent())
             control("Stop", "stop.fill", StopRecordingIntent(), tint: .red)
@@ -159,14 +164,14 @@ private extension RecordingActivityAttributes.ContentState.Phase {
         switch self {
         case .recording: "record.circle"
         case .paused: "pause.circle"
-        case .interrupted: "exclamationmark.triangle.fill"
+        case .interrupted, .halted: "exclamationmark.triangle.fill"
         }
     }
 
     var tint: Color {
         switch self {
         case .recording: .red
-        case .paused, .interrupted: .orange
+        case .paused, .interrupted, .halted: .orange
         }
     }
 }

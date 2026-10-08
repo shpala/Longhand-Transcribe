@@ -35,6 +35,21 @@ struct LibraryView: View {
     @State private var selection: UUID?
     /// Siri, Shortcuts, the Action Button and the Control Center control.
     @State private var requests = AppRequests.shared
+    /// Takes on disk that are not recordings yet: left by a crash mid-take,
+    /// or refused by an import (a full disk, usually). Listed above the
+    /// library until saved or deleted, never silently lost.
+    @State private var unsavedTakes: [UnsavedTake] = []
+    @State private var shareTake: UnsavedTake?
+    @State private var deleteTake: UnsavedTake?
+    /// Once per launch: the takes a kill left behind are imported on their
+    /// own the first time; after that, saving is the user's call.
+    @State private var didRecoverTakes = false
+    /// Takes an import is working on. The file is on disk until the protected
+    /// copy exists, and without this every Stop & Save flashed an "unsaved"
+    /// row for the second the import took. Emptied when a job appears or an
+    /// import fails, after which the listing is believed again.
+    @State private var importingTakes: Set<URL> = []
+    @Environment(\.scenePhase) private var scenePhase
 
     /// The idiom, not the size class: it cannot change while the app runs, so
     /// the navigation container is fixed for the process. Branching on
@@ -194,7 +209,7 @@ struct LibraryView: View {
 
     private var rootContent: some View {
         Group {
-            if model.jobs.isEmpty {
+            if model.jobs.isEmpty, unsavedTakes.isEmpty {
                 ContentUnavailableView {
                     VStack(spacing: 16) {
                         BrandMarkTile(size: 96)
@@ -207,11 +222,31 @@ struct LibraryView: View {
                         .buttonStyle(.borderedProminent)
                     Button("Import File") { showImporter = true }
                 }
-            } else if visibleJobs.isEmpty {
+            } else if visibleJobs.isEmpty, !query.isEmpty {
                 ContentUnavailableView.search(text: query)
             } else {
                 jobList
             }
+        }
+        // Jobs the system stopped are picked up again here, not only on a
+        // cold launch: the row says they will resume, so they do.
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            model.refresh()
+            model.resumeUnfinished()
+            refreshUnsavedTakes()
+        }
+        .onChange(of: model.errorAlert?.id) { _, _ in
+            importingTakes.removeAll()
+            refreshUnsavedTakes()
+        }
+        .onChange(of: showRecorder) { _, showing in
+            if !showing { refreshUnsavedTakes() }
+        }
+        .onChange(of: pendingImport?.id) { _, pending in
+            // Cancelled with options up: the take is gone, or still there and
+            // the user's to decide about.
+            if pending == nil { refreshUnsavedTakes() }
         }
         // Pinned on iPad: left automatic it collapses into a toolbar the
         // sidebar has no room for, and the field never appears.
@@ -219,7 +254,14 @@ struct LibraryView: View {
                     placement: Self.isPad ? .navigationBarDrawer(displayMode: .always) : .automatic,
                     prompt: "Search transcripts")
         .onChange(of: query) { _, _ in recomputeSearch() }
-        .onChange(of: model.jobs.count) { _, _ in recomputeSearch() }
+        .onChange(of: model.jobs.count) { _, _ in
+            recomputeSearch()
+            // A take that just became a recording leaves the unsaved list.
+            // `importingTakes` is not cleared here: the job can show up (a
+            // refresh from the scene becoming active) a moment before the
+            // import deletes the take, and the row would flash back.
+            refreshUnsavedTakes()
+        }
         .background(Color("LonghandBackground").ignoresSafeArea())
         .navigationTitle("Longhand")
         .navigationDestination(for: UUID.self) { jobID in
@@ -230,6 +272,8 @@ struct LibraryView: View {
         .onAppear {
             model.refresh()
             model.resumeUnfinished()
+            refreshUnsavedTakes()
+            recoverUnsavedTakes()
             model.runUITestSynthImportIfRequested()
             AppCommandTargets.shared.startRecording = { showRecorder = true }
             AppCommandTargets.shared.importFiles = { showImporter = true }
@@ -255,6 +299,17 @@ struct LibraryView: View {
 
     private var jobList: some View {
         List {
+            if !unsavedTakes.isEmpty {
+                Section {
+                    ForEach(unsavedTakes) { take in
+                        takeRow(take)
+                    }
+                } header: {
+                    Text("Unsaved takes")
+                } footer: {
+                    Text("Audio recorded but not yet in the library, usually because the app was closed mid-take or the device was out of space. Save a take to transcribe it.")
+                }
+            }
             ForEach(groupedJobs, id: \.day) { group in
                 Section(group.day) {
                     ForEach(group.jobs) { job in
@@ -418,10 +473,104 @@ struct LibraryView: View {
         if job.isPaused {
             return { model.resume(jobID: job.id) }
         }
-        if job.state == .failed {
+        if job.state == .failed || job.state == .interrupted {
             return { model.start(jobID: job.id) }
         }
         return nil
+    }
+
+    // MARK: - Unsaved takes
+
+    private func refreshUnsavedTakes() {
+        let onDisk = RecorderService.unsavedTakes()
+        // A take that has gone is a take that was imported.
+        importingTakes = importingTakes.filter { url in onDisk.contains { $0.url == url } }
+        unsavedTakes = onDisk.filter { !importingTakes.contains($0.url) }
+    }
+
+    /// What a kill left behind is saved without asking, once. A take whose
+    /// import already failed is listed instead, with the reason in the alert
+    /// the failure raised, so a full disk is not met with the same alert at
+    /// every launch.
+    private func recoverUnsavedTakes() {
+        guard !didRecoverTakes else { return }
+        didRecoverTakes = true
+        for take in unsavedTakes where (take.sidecar?.importAttempts ?? 0) == 0 {
+            importTake(take)
+        }
+    }
+
+    /// Through the same path a take just stopped takes, with what the sidecar
+    /// kept: the flags, the location, and the time it was started.
+    private func importTake(_ take: UnsavedTake) {
+        RecorderService.noteImportAttempt(for: take)
+        importingTakes.insert(take.url)
+        unsavedTakes.removeAll { $0.url == take.url }
+        model.importRecording(
+            from: take.url,
+            securityScoped: false,
+            deleteSourceAfterImport: true,
+            declaredLanguage: declaredLanguage == "system" ? nil : declaredLanguage,
+            expectedSpeakerCount: speakerCount == 0 ? nil : speakerCount,
+            location: take.sidecar?.location,
+            title: RecordingTitle.forTake(at: take.startedAt),
+            markers: take.sidecar?.markers ?? [])
+    }
+
+    private func takeRow(_ take: UnsavedTake) -> some View {
+        // Same shape as a job row: the content and the button are siblings,
+        // so Save owns its own tap target and the accessibility tree keeps
+        // it a button rather than folding it into the row.
+        HStack(spacing: 8) {
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(Color.orange.opacity(0.15))
+                    .frame(width: 36, height: 36)
+                    .overlay {
+                        Image(systemName: "waveform.badge.exclamationmark")
+                            .font(.callout)
+                            .foregroundStyle(.orange)
+                    }
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(RecordingTitle.forTake(at: take.startedAt)).font(.headline).lineLimit(1)
+                        Spacer()
+                        if let duration = take.duration {
+                            Text(Duration.seconds(duration).formatted(.time(pattern: .hourMinuteSecond)))
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Label("Not saved · \(ByteCountFormatter.string(fromByteCount: take.bytes, countStyle: .file))",
+                          systemImage: "exclamationmark.circle")
+                        .font(.caption).foregroundStyle(.orange)
+                }
+            }
+            .contentShape(Rectangle())
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("unsaved-take")
+            .contextMenu {
+                Button { importTake(take) } label: { Label("Save to Library", systemImage: "tray.and.arrow.down") }
+                Button { shareTake = take } label: { Label("Share Audio…", systemImage: "square.and.arrow.up") }
+                Button(role: .destructive) { deleteTake = take } label: { Label("Delete", systemImage: "trash") }
+            }
+            Button("Save") { importTake(take) }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .accessibilityLabel("Save take to library")
+                .accessibilityIdentifier("unsaved-take-save")
+        }
+        .padding(.vertical, 2)
+        .swipeActions(edge: .trailing) {
+            Button(role: .destructive) { deleteTake = take } label: { Label("Delete", systemImage: "trash") }
+            Button { shareTake = take } label: { Label("Share", systemImage: "square.and.arrow.up") }
+                .tint(.blue)
+        }
+        .swipeActions(edge: .leading) {
+            Button { importTake(take) } label: { Label("Save", systemImage: "tray.and.arrow.down") }
+                .tint(.green)
+        }
     }
 
     // MARK: - Sheets, dialogs, alerts
@@ -453,6 +602,24 @@ struct LibraryView: View {
             }
             .sheet(isPresented: $showVoices) {
                 EnrolledVoicesView(onReidentifyAll: { await model.reidentifyAll() })
+            }
+            .sheet(item: $shareTake) { take in
+                ShareSheet(items: [take.url])
+            }
+            .confirmationDialog("Delete this take?",
+                                isPresented: Binding(get: { deleteTake != nil },
+                                                     set: { if !$0 { deleteTake = nil } }),
+                                titleVisibility: .visible) {
+                if let take = deleteTake {
+                    Button("Delete Take", role: .destructive) {
+                        RecorderService.removeTake(at: take.url)
+                        deleteTake = nil
+                        refreshUnsavedTakes()
+                    }
+                }
+                Button("Keep", role: .cancel) { deleteTake = nil }
+            } message: {
+                Text("The audio was never transcribed and cannot be recovered once deleted.")
             }
             .fileImporter(isPresented: $showImporter,
                           allowedContentTypes: Self.importTypes,
@@ -559,6 +726,7 @@ struct LibraryView: View {
     private var recordSheet: some View {
         RecordSheet { url, location, markers in
             showRecorder = false
+            importingTakes.insert(url)
             // Straight to processing on the saved defaults; language and
             // speakers stay adjustable through Re-transcribe.
             model.importRecording(
@@ -572,6 +740,7 @@ struct LibraryView: View {
                 markers: markers)
         } onSaveWithOptions: { url, location, markers in
             showRecorder = false
+            importingTakes.insert(url)
             // Same options sheet an imported file gets (§7.1).
             pendingImport = PendingImport(urls: [url], securityScoped: false, deleteAfterImport: true,
                                           title: RecordingTitle.forTake(), markers: markers,
@@ -719,7 +888,7 @@ private struct JobRow: View {
                     .font(.caption).foregroundStyle(.orange)
                     .accessibilityIdentifier("status-PAUSED")
             } else {
-                Label("Interrupted, will resume", systemImage: "pause.circle")
+                Label("Interrupted, resumes when the app is open", systemImage: "pause.circle")
                     .font(.caption).foregroundStyle(.orange)
                     .accessibilityIdentifier("status-INTERRUPTED")
             }

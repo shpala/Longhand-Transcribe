@@ -61,6 +61,7 @@ The UI-test suites are the interaction harness; run them with `$D uitest`:
 | `LonghandUITests/SearchUITests` | library search + in-transcript find (needs `seed-sim`) |
 | `LonghandUITests/TranscriptEditingUITests` | edit a turn, revert it (needs `seed-sim`) |
 | `LonghandUITests/WordSeekUITests` | tap a word → playhead jumps to it (needs `seed-sim`) |
+| `LonghandUITests/TakeRecoveryUITests` | kill the app mid-take → relaunch imports it; a refused take is listed and Save imports it (`--uitest-unsaved-take`) |
 | `LonghandUITests/AppStoreScreenshotTests` | the App Store screenshot set (needs `seed-store-demo`) |
 
 **Ordering matters when you batch them.** The four "needs `seed-sim`" suites
@@ -405,6 +406,10 @@ Useless for agents; nothing to observe programmatically.
   back nil**; `LocationCapture`'s 15 s watchdog fires first. Only bites on the
   first recording after granting; re-record to test the happy path.
 
+- **iOS takes live in `Documents/Takes`** (fragmented m4a + JSON sidecar)
+  until imported; `--uitest-reset` wipes that folder with the library. A take
+  left there by a kill is imported on the next launch; one whose import
+  failed is listed under "Unsaved takes" (`unsaved-take` rows).
 - **Ground truth is the container, not the UI.** `job.json` (state, error,
   degradations), `10_asr.json`, `20_diarization.json`, `transcript.json` tell
   you exactly what happened. `$D pull sim|device` first, guess never.
@@ -445,7 +450,11 @@ Useless for agents; nothing to observe programmatically.
   through `xcodebuild -showdestinations`.
 - **First runs download models.** WhisperKit ~626 MB, SpeakerKit Community-1,
   Apple locale assets (device only). Budget 10-15 min deadlines the first
-  time; cached afterwards.
+  time; cached afterwards. A simulator that got a **new app container**
+  (`Documents/huggingface` missing) parks every job at the download question,
+  which reads as "Not hittable" rows and record sheets that never appear in
+  suites that do not answer it. `$D uitest LonghandUITests/ModelWarmupUITests
+  sim` answers Download and waits once; the models survive `--uitest-reset`.
 - **Device flakiness reads as infra errors** ("runner exited with code 74",
   "continuity display" timeouts): the phone dropped to Wi-Fi debugging, is
   locked, or is in use. Check `devicectl list devices`, retry once, else use
