@@ -348,8 +348,19 @@ PATH=/usr/bin:/bin:/usr/sbin:/sbin xcodebuild -exportArchive \
   -archivePath build/appstore/Longhand.xcarchive \
   -exportOptionsPlist build/appstore/ExportOptions.plist \
   -exportPath build/appstore/export \
-  -allowProvisioningUpdates $AUTH
+  -allowProvisioningUpdates ${=AUTH}
+
+# TestFlight / App Store upload (altool finds the key under
+# ~/.appstoreconnect/private_keys by its ID):
+xcrun altool --upload-app -f build/appstore/export/Longhand.ipa -t ios \
+  --apiKey <KEYID> --apiIssuer <ISSUER>
 ```
+
+`${=AUTH}`, not `$AUTH`: zsh does not word-split an unquoted variable, so
+`$AUTH` reaches xcodebuild as one argument and it prints its usage text
+instead of exporting. A processed build is not in any TestFlight group on
+its own; add it with `POST /v1/betaGroups/<group>/relationships/builds`
+(the "Internal" group has the owner as its tester).
 
 Swap the scheme to `LonghandMac` and the destination to
 `generic/platform=macOS` for the Mac, which exports a `.pkg` rather than an
@@ -381,7 +392,7 @@ A=/tmp/ipacheck/Payload/Longhand.app
 codesign -dvvv "$A" 2>&1 | grep Authority          # Apple Distribution, not Development
 codesign -d --entitlements - --xml "$A" | plutil -p -   # get-task-allow false, beta-reports-active true
 for b in "$A" "$A/Watch/Longhand.app" "$A/Watch/Longhand.app/PlugIns/LonghandComplication.appex"; do
-  security cms -D -i "$b/embedded.mobileprovision" | plutil -extract Name raw -o -
+  security cms -D -i "$b/embedded.mobileprovision" | plutil -extract Name raw -o - -
 done
 ```
 
