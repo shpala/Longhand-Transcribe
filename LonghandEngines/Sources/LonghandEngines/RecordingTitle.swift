@@ -1,4 +1,5 @@
 import Foundation
+import LonghandKit
 
 /// Names for recordings made inside the app.
 ///
@@ -10,8 +11,16 @@ import Foundation
 /// renameable.
 public enum RecordingTitle {
 
-    /// e.g. "19 Aug 2026 at 19:42", or "Watch · 19 Aug 2026 at 19:42".
-    public static func forTake(at date: Date = Date(), source: Source = .thisDevice) -> String {
+    /// e.g. "19 Aug 2026 at 19:42", or "Watch · 19 Aug 2026 at 19:42". A take
+    /// recorded during a calendar event takes the event's name instead: the
+    /// library already groups by day, so "Weekly sync" says more than the
+    /// time does.
+    public static func forTake(at date: Date = Date(), source: Source = .thisDevice,
+                               event: CalendarEventContext? = nil) -> String {
+        if let title = event?.title.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty {
+            guard let prefix = source.prefix else { return title }
+            return "\(prefix) · \(title)"
+        }
         let stamp = date.formatted(date: .abbreviated, time: .shortened)
         guard let prefix = source.prefix else { return stamp }
         return "\(prefix) · \(stamp)"

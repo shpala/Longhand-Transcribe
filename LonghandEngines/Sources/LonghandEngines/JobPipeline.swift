@@ -512,6 +512,10 @@ public nonisolated enum JobPipeline {
         for url in [files.asr, files.diarization, files.mergedWords, files.identity] {
             try? fm.removeItem(at: url)
         }
+        // The summary described words that are about to be replaced; unlike
+        // the overlay, nothing in it is the user's own unless they edited it,
+        // and even then it is about a transcript that will not exist.
+        try? fm.removeItem(at: files.summary)
         // The transcript and its exports stay until the re-run replaces them
         // atomically at its export stage; deleting them up front would leave a
         // failed or abandoned run with nothing to read.

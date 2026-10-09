@@ -26,6 +26,13 @@ public final class TranscriptScreenModel {
     /// §6.4 passages the filter removed, read from `10_asr.json`.
     public private(set) var suppressedSpans: [SuppressedSpan] = []
     public private(set) var index = TranscriptIndex(turns: [])
+    /// The model's summary, if one has been written. Stale when the words
+    /// changed under it; shown either way, labelled.
+    public private(set) var summary: TranscriptSummary?
+    public private(set) var summaryIsStale = false
+    /// People on the calendar event this take overlapped, offered when naming
+    /// a speaker. Local only, never applied without a tap.
+    public private(set) var suggestedSpeakerNames: [String] = []
     /// Before the first load, "no transcript" means still loading; after, it
     /// means the file could not be read.
     public private(set) var didLoad = false
@@ -57,12 +64,18 @@ public final class TranscriptScreenModel {
     public func load() {
         record = try? AtomicFile.readJSON(JobRecord.self, from: files.job, stage: "job") ?? nil
         transcript = try? AtomicFile.readJSON(Transcript.self, from: files.transcriptJSON, stage: "COMPLETE") ?? nil
-        let diagnostics = ImportDiagnostics(
-            metadata: (try? AtomicFile.readJSON(ImportMetadata.self, from: files.metadata, stage: "job")) ?? nil)
+        let metadata = (try? AtomicFile.readJSON(ImportMetadata.self, from: files.metadata, stage: "job")) ?? nil
+        let diagnostics = ImportDiagnostics(metadata: metadata)
         location = diagnostics.location
         appliedGainDb = diagnostics.appliedGainDb
         inputLevelDbFS = diagnostics.inputLevelDbFS
+        suggestedSpeakerNames = metadata?.calendarEvent?.attendees ?? []
         suppressedSpans = SuppressedSpans.load(from: files)
+        summary = (try? AtomicFile.readJSON(TranscriptSummary.self, from: files.summary, stage: "summary")) ?? nil
+        summaryIsStale = {
+            guard let summary, let transcript else { return false }
+            return !summary.isCurrent(for: transcript)
+        }()
         // Drives the karaoke highlight; nil for degraded or older jobs, which
         // fall back to the turn-level highlight (§17).
         let words = (try? AtomicFile.readJSON(MergeOutput.self, from: files.mergedWords, stage: "MERGED") ?? nil)?.words
@@ -203,6 +216,32 @@ public final class TranscriptScreenModel {
               diarization.centroids?[cluster] != nil else { return false }
         let clusterTurns = transcript.turns.filter { $0.cluster == cluster }
         return SpeakerMatcher.isCleanForEnrollment(clusterTurns: clusterTurns)
+    }
+
+    // MARK: - Summary
+
+    /// Replaces the summary with what a person typed, and re-exports so the
+    /// Markdown carries it. Through the exports, not the overlay: the summary
+    /// is not something a re-merge could rebuild.
+    public func saveSummary(_ edited: TranscriptSummary) throws {
+        var edited = edited
+        edited.tidy()
+        try AtomicFile.writeJSON(edited, to: files.summary)
+        try JobPipeline.rerender(files: files)
+        load()
+    }
+
+    public func deleteSummary() throws {
+        try? FileManager.default.removeItem(at: files.summary)
+        try JobPipeline.rerender(files: files)
+        load()
+    }
+
+    /// Calendar names not already enrolled: the rename sheet lists profiles
+    /// first, and the same name twice would be a choice with no difference.
+    public func calendarNameSuggestions(excluding known: [String]) -> [String] {
+        let taken = Set(known.map { Self.cleanedName($0) })
+        return suggestedSpeakerNames.filter { !taken.contains(Self.cleanedName($0)) }
     }
 
     public func enrollVoice(cluster: String, as name: String) {

@@ -7,11 +7,18 @@ struct MacRenameSpeakerSheet: View {
     let cluster: String
     @State var name: String
     let canEnroll: Bool
+    /// People on the calendar event, offered but never applied by themselves.
+    var suggestions: [String] = []
     let onSave: (String, Bool) -> Void
     let onCancel: () -> Void
 
     @State private var rememberVoice = false
     @State private var profiles: [SpeakerProfile] = SpeakerProfileStore.load()
+
+    private var calendarNames: [String] {
+        let enrolled = Set(profiles.map { TranscriptScreenModel.cleanedName($0.displayName) })
+        return suggestions.filter { !enrolled.contains(TranscriptScreenModel.cleanedName($0)) }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -19,6 +26,25 @@ struct MacRenameSpeakerSheet: View {
                 .font(.title3.weight(.semibold))
                 .padding(.bottom, 12)
             Form {
+                if !calendarNames.isEmpty {
+                    Section("From the calendar") {
+                        ForEach(calendarNames, id: \.self) { attendee in
+                            Button {
+                                name = attendee
+                            } label: {
+                                HStack {
+                                    Text(attendee)
+                                    Spacer()
+                                    if name == attendee {
+                                        Image(systemName: "checkmark").foregroundStyle(.tint)
+                                    }
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
                 if !profiles.isEmpty {
                     // §15.3: assign the cluster to someone already enrolled
                     // instead of retyping their name.
@@ -309,8 +335,11 @@ struct MacSettingsView: View {
     @AppStorage(WhisperModelVariant.defaultsKey) private var whisperVariant =
         WhisperModelVariant.turbo.rawValue
     @AppStorage(LocationCapture.settingsKey) private var captureLocation = false
+    @AppStorage(TranscriptSummarizer.settingsKey) private var summarize = true
+    @AppStorage(ProcessingHold.lowPowerKey) private var pauseInLowPower = true
     @State private var diskUsage: Int64 = 0
     @State private var leftoverBytes: Int64 = 0
+    @State private var summaryAvailability = TranscriptSummarizer.Availability.available
 
     var body: some View {
         TabView {
@@ -322,6 +351,17 @@ struct MacSettingsView: View {
                 }
                 Toggle("Save location with recordings", isOn: $captureLocation)
                 Text("Off by default. Tags new recordings made on this Mac with where they were made. Stored only on this Mac, shown only to you, and never included in exports.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                Toggle("Summarize new transcripts", isOn: $summarize)
+                    .disabled(!summaryAvailability.isAvailable)
+                Text(summaryAvailability.explanation
+                     ?? "Apple's on-device model writes a short summary with key points, decisions and action items when a transcript finishes. Nothing leaves this Mac. Only languages the model speaks are summarized.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                Toggle("Pause transcription in Low Power Mode", isOn: $pauseInLowPower)
+                    .onChange(of: pauseInLowPower) { _, _ in
+                        MacLibrary.model.reevaluateProcessingHold()
+                    }
+                Text("Transcription waits while Low Power Mode is on and continues when it ends. It always waits while the Mac is too hot.")
                     .font(.footnote).foregroundStyle(.secondary)
                 Picker("Whisper model", selection: $whisperVariant) {
                     ForEach(WhisperModelVariant.selectable, id: \.rawValue) { variant in
@@ -353,6 +393,7 @@ struct MacSettingsView: View {
             .onAppear {
                 diskUsage = MacLibrary.model.totalDiskUsage()
                 leftoverBytes = ModelStaging.totalLeftoverBytes()
+                summaryAvailability = TranscriptSummarizer.deviceAvailability
                 // A Mac left on a build this screen no longer lists would keep
                 // using it with nothing saying so.
                 if !WhisperModelVariant.selectable.map(\.rawValue).contains(whisperVariant) {

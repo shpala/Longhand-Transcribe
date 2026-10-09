@@ -31,6 +31,10 @@ struct TranscriptView: View {
     @State private var reassignTarget: Transcript.Turn?
     @State private var newSpeakerTarget: Transcript.Turn?
     @State private var newSpeakerName = ""
+    @State private var showSummaryEditor = false
+    /// Why this transcript cannot be summarized, read once per load: the
+    /// answer involves a system query.
+    @State private var summaryUnavailableReason: String?
     @AppStorage("playbackRate") private var playbackRate = 1.0
     @Environment(JobLibraryModel.self) private var jobsModel
     @Environment(\.dismiss) private var dismiss
@@ -57,6 +61,9 @@ struct TranscriptView: View {
         /// Copying the whole transcript goes through the §14.1 confirmation
         /// like any other export. Copying a single turn does not.
         var toClipboard: Bool = false
+        /// Text to copy instead of the file's contents: the summary has no
+        /// file of its own.
+        var text: String?
     }
 
     /// Split out of `body`, whose modifier chain outgrew the type-checker.
@@ -80,7 +87,7 @@ struct TranscriptView: View {
                     if let target = pendingExport {
                         Button(target.toClipboard ? "Copy \(target.label)" : "Share \(target.label)") {
                             if target.toClipboard {
-                                if let text = try? String(contentsOf: target.url, encoding: .utf8) {
+                                if let text = target.text ?? (try? String(contentsOf: target.url, encoding: .utf8)) {
                                     UIPasteboard.general.string = text
                                 }
                             } else {
@@ -217,9 +224,18 @@ struct TranscriptView: View {
                 newSpeakerTarget = nil
             }
         }
+        .summaryEditor(isPresented: $showSummaryEditor, summary: screen.summary) { edited in
+            correct { try screen.saveSummary(edited) }
+        }
+        // The summary arrives after the job: reload the text under the card
+        // without touching playback.
+        .onChange(of: isSummarizing) { _, working in
+            if !working { load(keepingPlayback: true) }
+        }
         .sheet(item: $renameTarget) { target in
             RenameSpeakerSheet(cluster: target.cluster, name: target.currentName,
-                               canEnroll: target.canEnroll) { newName, enroll in
+                               canEnroll: target.canEnroll,
+                               suggestions: screen.suggestedSpeakerNames) { newName, enroll in
                 rename(cluster: target.cluster, to: newName)
                 if enroll {
                     enrollVoice(cluster: target.cluster, as: newName)
@@ -327,6 +343,7 @@ struct TranscriptView: View {
                         .buttonStyle(.plain)
                         .accessibilityLabel("Recording location. Opens in Maps.")
                     }
+                    summaryCard
                     if let record, !record.degradations.isEmpty {
                         ForEach(record.degradations, id: \.self) { note in
                             VStack(alignment: .leading, spacing: 8) {
@@ -524,11 +541,45 @@ struct TranscriptView: View {
         }
     }
 
+    private var isSummarizing: Bool { jobsModel.summarizingJobs.contains(jobID) }
+
+    /// The summary, or the way to get one. Above the turns: it is what a
+    /// reader coming back to a recording wants first.
+    private var summaryCard: some View {
+        SummaryCard(summary: screen.summary,
+                    isStale: screen.summaryIsStale,
+                    isWorking: isSummarizing,
+                    unavailableReason: summaryUnavailableReason,
+                    errorText: jobsModel.summaryErrors[jobID],
+                    onGenerate: summarize,
+                    onEdit: { showSummaryEditor = true },
+                    onCopy: {
+                        if let summary = screen.summary {
+                            pendingExport = ExportTarget(label: "Summary", url: screen.files.summary,
+                                                         toClipboard: true, text: summary.plainText)
+                        }
+                    },
+                    onDelete: { correct { try screen.deleteSummary() } })
+    }
+
+    private func summarize() {
+        Task {
+            await jobsModel.summarize(jobID: jobID)
+            load(keepingPlayback: true)
+        }
+    }
+
     /// Actions on the transcript itself: re-identification after new
     /// enrollment (§10 re-entry edge), explicit re-transcription (§13.2),
     /// and export.
     private var actionsMenu: some View {
         Menu {
+            if screen.summary == nil, summaryUnavailableReason == nil,
+               !jobsModel.summarizingJobs.contains(jobID) {
+                Button(action: summarize) {
+                    Label("Summarize", systemImage: "sparkles")
+                }
+            }
             Button {
                 do {
                     // False means there is no diarization checkpoint to match
@@ -564,6 +615,7 @@ struct TranscriptView: View {
         let resumeAt = keepingPlayback ? player.currentTime : nil
         let wasPlaying = keepingPlayback && player.isPlaying
         screen.load()
+        summaryUnavailableReason = TranscriptSummarizer.availability(for: screen.transcript?.language).explanation
         // A continuously animating view never reaches XCUITest quiescence.
         player.tickInterval = UITestSupport.isUITestRun ? 0.25 : 0.1
         #if DEBUG
@@ -990,15 +1042,41 @@ private struct RenameSpeakerSheet: View {
     let cluster: String
     @State var name: String
     let canEnroll: Bool
+    /// People on the calendar event, offered but never applied by themselves.
+    var suggestions: [String] = []
     let onSave: (String, Bool) -> Void
     let onCancel: () -> Void
 
     @State private var rememberVoice = false
     @State private var profiles: [SpeakerProfile] = SpeakerProfileStore.load()
 
+    /// Calendar names not already enrolled, since those are listed above.
+    private var calendarNames: [String] {
+        let enrolled = Set(profiles.map { TranscriptScreenModel.cleanedName($0.displayName) })
+        return suggestions.filter { !enrolled.contains(TranscriptScreenModel.cleanedName($0)) }
+    }
+
     var body: some View {
         NavigationStack {
             Form {
+                if !calendarNames.isEmpty {
+                    Section("From the calendar") {
+                        ForEach(calendarNames, id: \.self) { attendee in
+                            Button {
+                                name = attendee
+                            } label: {
+                                HStack {
+                                    Text(attendee).foregroundStyle(.primary)
+                                    Spacer()
+                                    if name == attendee {
+                                        Image(systemName: "checkmark").foregroundStyle(.tint)
+                                    }
+                                }
+                            }
+                            .accessibilityIdentifier("calendar-name")
+                        }
+                    }
+                }
                 if !profiles.isEmpty {
                     // §15.3: pick an enrolled person instead of retyping.
                     Section("This is…") {

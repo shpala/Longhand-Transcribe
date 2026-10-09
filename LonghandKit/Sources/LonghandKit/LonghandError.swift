@@ -33,6 +33,9 @@ public enum LonghandError: Error, Equatable {
     case checkpointCorrupt(stage: String)
     case invalidStateTransition(from: JobState, to: JobState)
     case cancelled
+    /// The on-device language model could not write a summary. Never a job
+    /// failure: the transcript is complete and the summary is extra.
+    case summaryUnavailable(reason: String)
 }
 
 extension LonghandError: LocalizedError {
@@ -64,6 +67,8 @@ extension LonghandError: LocalizedError {
             return "Invalid job state transition \(from.rawValue) → \(to.rawValue)."
         case .cancelled:
             return "The job was cancelled."
+        case let .summaryUnavailable(reason):
+            return "Couldn't write a summary: \(reason)"
         }
     }
 }

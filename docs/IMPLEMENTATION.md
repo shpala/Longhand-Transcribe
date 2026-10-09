@@ -104,6 +104,11 @@ speaker names confirmed and a few turns corrected, settles both at once.
 | Per-turn speaker reassignment (addition) | `JobPipeline.assignTurn`, `Turn.assignedCluster`, speaker chip menu in both shells | one passage moves without touching the diarizer's claim, so §9.2 enrollment eligibility and centroid lookup are unaffected. The chip is a scope chooser: "this passage is someone else" versus "rename, N passages", the count naming a reach the chip cannot otherwise show |
 | User-defined speakers (addition) | `UserOverlay.mintSpeakerCluster()` / `isUserDefined`, `USER_<hex>` keys | the diarizer folding a third person into someone else's cluster leaves nothing to reassign *to*; "Someone else…" mints a cluster the overlay seeds into the speakers table. No centroid exists for it, so `canEnroll` refuses enrollment without a special case: an invented speaker is a label, never a voiceprint. Undoing the last passage prunes the orphaned name |
 | Markers (addition) | flag button on all three record surfaces → `ImportService(markers:)` → overlay → transcript + Markdown | the recorders' clocks exclude paused time (iOS counts frames written; the Mac and watch use `AVAudioRecorder.currentTime`), so marker times share the transcript's clock |
+| Notes while recording (addition) | text field on the iOS and Mac record sheets → labelled `Transcript.Marker` → `TakeSidecar` → overlay | a note is a marker with a label, drawn among the words it was typed over; see "Notes while recording, summaries, calendar titles" below |
+| Summaries (addition) | `LonghandKit/Sources/LonghandKit/Summary/TranscriptSummary.swift` (+`SummaryChunker`), `LonghandEngines/Sources/LonghandEngines/TranscriptSummarizer.swift`, `SummaryViews.swift`, `summary.json` | Apple's on-device model through the Foundation Models framework; chunked over the model's window; cached beside the transcript, led into the Markdown export, labelled stale after a correction, deleted by a re-transcribe; languages the model does not speak are refused with a reason |
+| Calendar titles (addition) | `LonghandEngines/Sources/LonghandEngines/CalendarContext.swift`, `ImportMetadata.calendarEvent`, rename sheets | off by default; the event in progress names the take and its attendees are offered when naming a speaker; metadata.json only, never exported; iOS only |
+| Stop notification (addition) | `Longhand/Audio/TakeNotifier.swift` | a time-sensitive local notification when a take is interrupted or halts with the app not in front |
+| Low Power and thermal hold (addition) | `LonghandEngines/Sources/LonghandEngines/ProcessingHold.swift`, `JobLibraryModel.apply(hold:)` | jobs stop at the next checkpoint and resume when the condition lifts; rows say which |
 | Per-word tap-to-seek (addition) | `LonghandEngines/Sources/LonghandEngines/WordTapText.swift` (`WordFrameRenderer`, `WordFrames`) | words stay in one `Text` so SwiftUI keeps bidi reordering intact; the renderer reports each word's frame and also draws the active word's wash |
 | Playback (addition) | `LonghandEngines/Sources/LonghandEngines/TranscriptPlayer.swift` | one player for both shells: speed 0.75×-2× (remembered), ±15 s skip, clock ticking only while playing |
 | §15.2 ⟨R-16⟩ rendering at scale | `LonghandKit/Sources/LonghandKit/Transcript/TranscriptIndex.swift` + per-row observation | binary-search time→turn with a forward cursor, word slices precomputed at load (also fixes a word being claimed by two abutting turns); the 10 Hz repaint is confined to the active row instead of the whole list |
@@ -1335,3 +1340,115 @@ Hebrew coverage of Apple's engine, SpeechTranscriber timing granularity,
 App Store size limits for a bundled model, SpeakerKit/Pyannote/WhisperKit/
 sherpa-onnx license terms, iOS 26 call-recording export format, GPU
 entitlement process. None are assumed resolved anywhere in the code.
+
+## Notes while recording, summaries, calendar titles, and a pipeline that waits for the device (9 Oct 2026)
+
+Five additions from the second iOS review, the first three borrowed from what
+meeting-notes products do and the last two from what the device asks for.
+
+**Notes while recording.** The record sheet has a text field under the status
+line. Return adds what was typed as a marker labelled with it, at the
+recorder's clock, so a note is the existing marker with a label and needs no
+new storage: `TakeSidecar.markers` and `ImportService(markers:)` carry
+`Transcript.Marker` instead of bare times, `UserOverlay.addMarkers` trims the
+label and turns a blank one into a plain flag, and the transcript already drew
+labelled markers inline among the words (`MarkedTurnText`) and as rows
+(`MarkerRow`), and the Markdown export already printed them. Something typed
+and not submitted when Stop & Save is pressed is still a note. The status line
+counts flags and notes separately. The Mac sheet has the same field; the watch
+has a flag button and no keyboard, and its times are converted on arrival.
+Sidecars written before this held `markers` as `[Double]`; `TakeSidecar`
+decodes either form, so a take a kill left behind under build 7 still
+recovers with its flags. `NotesDuringRecordingUITests` types a note, stops,
+and finds it in the transcript (as a trailing marker row, since the simulator
+mic produces no words).
+
+**Summaries, on the system's model.** The August attempt (above, "Tried and
+removed") put a 2.3 GB Qwen model inside the process through MLX and was
+removed on cost: memory at the jetsam ceiling, foreground only, a Metal
+toolchain dependency for every build, and summaries not worth it. This one
+uses the Foundation Models framework: Apple's on-device model, run by the
+system outside the process, no download, no package, no memory charged to the
+app. What it cannot do is set by the system too: `SystemLanguageModel`
+declares its languages, and `TranscriptSummarizer.availability(for:)` refuses
+a Hebrew or Russian transcript up front with a sentence naming the language,
+rather than summarising it into the wrong one, which is what the small
+in-process models did. On a device without Apple Intelligence the Settings
+toggle is disabled with the reason under it.
+
+The summary is `summary.json` beside the transcript, a `TranscriptSummary`
+(overview, key points, decisions, action items). It is not a checkpoint
+(nothing gates on it) and not overlay content (a re-merge cannot rebuild it),
+but a cache of unreproducible model output. The derived-transcript rule holds
+in the one direction it needs to: `TranscriptExporter.writeAll` reads the file
+and leads the Markdown with it under its own heading; the text export, which
+Copy Transcript and Get Transcript hand out, never carries it, because a
+summary is not the transcript. `transcriptHash` records what was summarised
+(words and speaker names, folded so punctuation and case do not count); a
+correction leaves the summary in place and the card labels it "Transcript
+changed since", because most corrections do not change what a summary should
+say. A re-transcribe deletes it with the words it described.
+
+Long transcripts exceed the model's window of a few thousand tokens.
+`SummaryChunker` (LonghandKit, tested) cuts the transcript into "Name: words"
+pieces under a word budget, keeping turns whole when the next piece has room
+and cutting only a monologue longer than the budget; each piece gets its own
+session and a `ChunkNotes` answer, and a final session combines the notes.
+The budget is 1,100 words, which leaves room for the instructions and the
+answer at the worst tokens-per-word ratio seen; `exceededContextWindowSize`
+is translated into a message that says to report it.
+
+`JobLibraryModel.summarize` runs after a job reaches COMPLETE when the
+setting is on (default on where available), the language is supported and
+the transcript has at least 25 words, and from the card or the actions menu
+otherwise. The floor exists because the model fills a gap rather than
+reporting one: a simulator take whose only word was a hallucinated "Papa!"
+came back as "A man calls his father and has a conversation with him."
+Checked on this Mac (macOS 26, Apple Intelligence on): the model lists 23
+locales, English among them and neither Hebrew nor Russian, and a 120-word
+English meeting transcript took 4.9 s and came back with the date, the
+decision and both action items correctly attributed. A failure lands on the card,
+never on the job: the transcript is done either way. The card (`SummaryCard`,
+in LonghandEngines so the Mac draws the same one) names the author and the
+date, and offers edit, copy (through the §14.1 confirmation, since it is the
+whole content), summarize again (with a warning when the text was edited by
+hand) and remove. Editing writes the file with `editedAt`, and the attribution
+changes to "Edited".
+
+**Calendar titles.** With the Settings toggle on (off by default, like
+location, and a separate permission), `CalendarContext.current()` reads the
+event in progress when a take starts: not all-day, titled, started within 15
+minutes from now or earlier and not ended more than 15 minutes ago, and among
+several the one that started most recently (a meeting inside a focus block).
+The title names the recording (`RecordingTitle.forTake(event:)`), the sheet
+shows it under the timer, and the event's attendees (not the user; organizer
+included) ride in `metadata.json` as `calendarEvent`, beside the location and
+under the same rule: never exported, and the rename sheet lists them under
+"From the calendar" for a tap, never applied by themselves. The sidecar
+carries the event so a recovered take keeps its title. Nothing is written to
+the calendar. iOS only for now: the Mac would need the calendars sandbox
+entitlement and has not been tried.
+
+**A notification when a take stops without you.** The Live Activity already
+turned from Recording to Interrupted or Stopped, which is easy to miss in a
+pocket. `TakeNotifier` posts a time-sensitive local notification when the
+recorder is interrupted or halts while the app is not in front, with the
+halt's reason in the body, and clears it on resume or stop. Permission is
+asked once, at the first take, after the microphone is open so the take never
+waits on it, and never under a UI test, where the system alert would block
+the run.
+
+**Low Power Mode and heat.** `ProcessingHold.current` (pure, tested) says
+when the library should not be transcribing: thermal state serious or
+critical always, Low Power Mode when the Settings toggle says so (default
+on). `JobLibraryModel` observes both notifications; a hold cancels the running
+tasks the way a pause does but without the user's flag, so the rows say
+"Waiting for Low Power Mode to end" or "Waiting for the device to cool down"
+and the jobs resume on their own when the hold lifts. The hold is checked
+again after the engines are built, because a hold arriving during those
+seconds found no task to cancel and the job ran anyway; the test for it
+stages a job under the library root, which is the only place the model
+resumes from.
+
+Also recorded here: the privacy page gained Calendar, Summaries and notes
+entries, with a new effective date.

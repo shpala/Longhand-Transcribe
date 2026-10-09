@@ -28,8 +28,18 @@ public enum TranscriptExporter {
         + "\n"
     }
 
-    public static func markdown(_ transcript: Transcript) -> String {
+    /// Markdown is the one export with room for a summary as well as markers:
+    /// it goes first, under its own heading, and the transcript follows under
+    /// one of its own so the two are never confused.
+    public static func markdown(_ transcript: Transcript, summary: TranscriptSummary? = nil) -> String {
         var lines: [String] = []
+        if let summary, !summary.isEmpty {
+            lines.append("## Summary")
+            lines.append("")
+            lines.append(summary.markdown)
+            lines.append("## Transcript")
+            lines.append("")
+        }
         var pendingMarkers = (transcript.markers ?? []).sorted { $0.time < $1.time }
         for turn in transcript.turns {
             // Markdown is the one export with room for markers.
@@ -80,9 +90,14 @@ public enum TranscriptExporter {
             ?? UserOverlay.ApplyResult(transcript: transcript, staleEdits: [])
         let final = result.transcript
 
+        // Read, never regenerated here: a summary is a model's work and the
+        // export only carries it. An unreadable one is left out rather than
+        // failing the export, since the transcript is the thing being written.
+        let summary = (try? AtomicFile.readJSON(TranscriptSummary.self, from: files.summary, stage: "summary")) ?? nil
+
         try AtomicFile.write(try canonicalJSON(final), to: files.transcriptJSON)
         try AtomicFile.write(Data(text(final).utf8), to: files.transcriptText)
-        try AtomicFile.write(Data(markdown(final).utf8), to: files.transcriptMarkdown)
+        try AtomicFile.write(Data(markdown(final, summary: summary).utf8), to: files.transcriptMarkdown)
         return result
     }
 }

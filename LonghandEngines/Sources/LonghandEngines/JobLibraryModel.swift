@@ -84,6 +84,13 @@ public final class JobLibraryModel {
     public var pendingModelDownload: PendingModelDownload?
     /// A failure with no job row to live on, surfaced rather than swallowed (§17).
     public var errorAlert: ErrorAlert?
+    /// Why nothing is being transcribed right now, when the system asked for
+    /// quiet. Rows read it; jobs stopped by it resume when it clears.
+    public private(set) var processingHold: ProcessingHold?
+    /// Jobs whose summary is being written, for the card's spinner.
+    public private(set) var summarizingJobs: Set<UUID> = []
+    /// The last failure to write a summary, per job, for the card to show.
+    public private(set) var summaryErrors: [UUID: String] = [:]
 
     public struct ErrorAlert: Identifiable, Sendable {
         public let id = UUID()
@@ -113,12 +120,54 @@ public final class JobLibraryModel {
     /// make `run` refuse to do anything.
     private var activeRuns: Set<UUID> = []
 
+    /// `observesSystemState` wires the power and thermal notifications; tests
+    /// pass false so a hot CI runner cannot pause the job under them.
     public init(backgroundWrapper: @escaping BackgroundWrapper = { _, _, progress, work in
                     try await work(progress)
                 },
-                onRefresh: @escaping (JobRecord?) -> Void = { _ in }) {
+                onRefresh: @escaping (JobRecord?) -> Void = { _ in },
+                observesSystemState: Bool = true) {
         self.backgroundWrapper = backgroundWrapper
         self.onRefresh = onRefresh
+        if observesSystemState {
+            processingHold = ProcessingHold.current()
+            observeSystemState()
+        }
+    }
+
+    // MARK: - Power and heat
+
+    private var systemObservers: [NSObjectProtocol] = []
+
+    /// Both notifications are documented to arrive on arbitrary threads;
+    /// the main queue is requested so the hold is applied on the actor.
+    private func observeSystemState() {
+        let center = NotificationCenter.default
+        for name in [ProcessInfo.thermalStateDidChangeNotification,
+                     Notification.Name.NSProcessInfoPowerStateDidChange] {
+            systemObservers.append(center.addObserver(forName: name, object: nil, queue: .main) { _ in
+                MainActor.assumeIsolated { self.reevaluateProcessingHold() }
+            })
+        }
+    }
+
+    /// Settings changed the Low Power toggle, or the system changed its mind.
+    public func reevaluateProcessingHold() {
+        apply(hold: ProcessingHold.current())
+    }
+
+    /// A hold stops every running job at its next checkpoint, as a pause
+    /// does, but without the user's flag, so the rows say why and the jobs
+    /// come back on their own. Lifting it is `resumeUnfinished`.
+    func apply(hold: ProcessingHold?) {
+        guard hold != processingHold else { return }
+        processingHold = hold
+        if hold != nil {
+            for task in runTasks.values { task.cancel() }
+        } else {
+            resumeUnfinished()
+        }
+        refresh()
     }
 
     // MARK: - Library
@@ -152,7 +201,8 @@ public final class JobLibraryModel {
                                 location: CapturedLocation? = nil,
                                 title: String? = nil,
                                 sourceTakeID: String? = nil,
-                                markers: [TimeInterval] = []) {
+                                markers: [Transcript.Marker] = [],
+                                calendarEvent: CalendarEventContext? = nil) {
         Task {
             do {
                 let imported = try await Task.detached {
@@ -162,7 +212,8 @@ public final class JobLibraryModel {
                                                             location: location,
                                                             title: title,
                                                             sourceTakeID: sourceTakeID,
-                                                            markers: markers)
+                                                            markers: markers,
+                                                            calendarEvent: calendarEvent)
                 }.value
                 if deleteSourceAfterImport {
                     try? FileManager.default.removeItem(at: url)
@@ -256,6 +307,10 @@ public final class JobLibraryModel {
             refresh()
         }
 
+        // Not started under a hold: the row says what it is waiting for, and
+        // `resumeUnfinished` runs when the hold lifts.
+        guard processingHold == nil else { return }
+
         let files = JobStore.files(for: jobID)
         let whisperVariant = WhisperModelVariant.current
         if engines == nil || enginesWhisperVariant != whisperVariant {
@@ -263,8 +318,9 @@ public final class JobLibraryModel {
             enginesWhisperVariant = whisperVariant
         }
         guard let engines else { return }
-        // Building the engines takes seconds, and a pause in that window has
-        // nothing to cancel yet.
+        // Building the engines takes seconds, and a pause or a hold arriving
+        // in that window has nothing to cancel yet.
+        guard processingHold == nil else { return }
         if let record = (try? AtomicFile.readJSON(JobRecord.self, from: files.job, stage: "job")) ?? nil,
            record.pausedByUser == true {
             return
@@ -299,6 +355,16 @@ public final class JobLibraryModel {
 
         do {
             try await work.value
+            // A finished transcript gets its summary, if the user wants one
+            // and the model can write this language. Separate from the run:
+            // the job is COMPLETE whether or not this works.
+            if TranscriptSummarizer.isAutomatic,
+               let record = (try? AtomicFile.readJSON(JobRecord.self, from: files.job, stage: "job")) ?? nil,
+               record.state == .complete,
+               TranscriptSummarizer.availability(for: record.language).isAvailable,
+               !FileManager.default.fileExists(atPath: files.summary.path) {
+                Task { [weak self] in await self?.summarize(jobID: jobID, requested: false) }
+            }
         } catch {
             // A job stopped on a question is parked, not merely interrupted:
             // otherwise the row promises "will resume", `resumeUnfinished`
@@ -357,6 +423,46 @@ public final class JobLibraryModel {
             guard !job.isPaused else { continue }
             start(jobID: job.id)
         }
+    }
+
+    // MARK: - Summaries
+
+    /// Writes a summary of a COMPLETE job's transcript and re-exports so the
+    /// Markdown carries it. One at a time per job; a second request while
+    /// one is running is ignored, and the model itself refuses concurrent
+    /// requests anyway. A failure lands in `summaryErrors` for the card, never
+    /// on the job: the transcript is done either way.
+    public func summarize(jobID: UUID, requested: Bool = true) async {
+        guard !summarizingJobs.contains(jobID) else { return }
+        summarizingJobs.insert(jobID)
+        summaryErrors[jobID] = nil
+        defer { summarizingJobs.remove(jobID) }
+        let files = JobStore.files(for: jobID)
+        do {
+            guard let transcript = try AtomicFile.readJSON(Transcript.self, from: files.transcriptJSON, stage: "COMPLETE") else {
+                throw LonghandError.summaryUnavailable(reason: "The transcript isn't finished yet.")
+            }
+            // Silence has nothing to summarise, and the no-speech screen has
+            // no card to say so on. A few words are not worth a card saying
+            // "too short" either, unless someone asked.
+            guard !transcript.turns.isEmpty else { return }
+            if !requested, !TranscriptSummarizer.isLongEnough(transcript) { return }
+            let title = job(jobID)?.title ?? "Recording"
+            let summary = try await TranscriptSummarizer.summarize(transcript, title: title)
+            // The job may have been deleted while the model worked.
+            guard FileManager.default.fileExists(atPath: files.root.path) else { return }
+            try AtomicFile.writeJSON(summary, to: files.summary)
+            try JobPipeline.rerender(files: files)
+        } catch LonghandError.cancelled {
+            return
+        } catch {
+            summaryErrors[jobID] = Self.describe(error)
+        }
+        refresh()
+    }
+
+    public func clearSummaryError(jobID: UUID) {
+        summaryErrors[jobID] = nil
     }
 
     // MARK: - Deletion and re-runs

@@ -305,6 +305,21 @@ private func fixture(_ turns: [Transcript.Turn],
         #expect(result.markers?.last?.label == "decision")
     }
 
+    /// A note typed while recording is a marker with a label; a flag is one
+    /// without. Both arrive in one list, and a note someone typed and then
+    /// erased is a flag, not a marker labelled with nothing.
+    @Test func typedNotesAreMarkersWithLabels() {
+        var overlay = UserOverlay()
+        overlay.addMarkers([
+            Transcript.Marker(time: 30, label: "  Budget agreed  "),
+            Transcript.Marker(time: 5),
+            Transcript.Marker(time: 12, label: "   "),
+        ])
+        let result = overlay.apply(to: fixture([turn(0, "SPEAKER_00", 0, 60, "…")]))
+        #expect(result.markers?.map(\.time) == [5, 12, 30])
+        #expect(result.markers?.map(\.label) == [nil, nil, "Budget agreed"])
+    }
+
     @Test func anEmptyOverlayLeavesTheTranscriptAlone() {
         let base = fixture([turn(0, "SPEAKER_00", 0, 5, "unchanged", speaker: "Speaker 1")])
         let overlay = UserOverlay()

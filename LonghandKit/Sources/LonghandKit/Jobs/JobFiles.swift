@@ -36,6 +36,11 @@ public struct JobFiles: Sendable {
     /// This one outlives every re-run (§13.2).
     public var overlay: URL { root.appendingPathComponent("overlay.json") }
 
+    /// A model's summary of the finished transcript, cached because it is not
+    /// reproducible. Not a checkpoint: nothing gates on it, and a
+    /// re-transcribe deletes it along with the words it described.
+    public var summary: URL { root.appendingPathComponent("summary.json") }
+
     public var transcriptJSON: URL { root.appendingPathComponent("transcript.json") }
     public var transcriptMarkdown: URL { root.appendingPathComponent("transcript.md") }
     public var transcriptText: URL { root.appendingPathComponent("transcript.txt") }

@@ -56,6 +56,45 @@ import LonghandKit
         #expect(screen.placedMarkers(at: 0).isEmpty && screen.placedMarkers(at: 1).isEmpty)
     }
 
+    // MARK: - Summary
+
+    /// The summary rides the exports: saving one puts it in the Markdown,
+    /// editing a word under it marks it stale without dropping it, and
+    /// removing it takes it out of the export again.
+    @Test func aSummaryIsExportedLabelledStaleAndRemovable() async throws {
+        let (screen, files) = try await completedJob()
+        defer { try? FileManager.default.removeItem(at: files.root) }
+        let transcript = try #require(screen.transcript)
+        #expect(screen.summary == nil)
+
+        try screen.saveSummary(TranscriptSummary(model: "test", transcriptHash: TranscriptSummary.hash(of: transcript),
+                                                 overview: "Wednesday was agreed.", actionItems: [" ", "Noam drafts"]))
+        #expect(screen.summary?.actionItems == ["Noam drafts"], "lists are tidied on save")
+        #expect(!screen.summaryIsStale)
+        #expect(try String(contentsOf: files.transcriptMarkdown, encoding: .utf8).hasPrefix("## Summary\n\nWednesday was agreed."))
+
+        try screen.edit(transcript.turns[0], to: "We need Thursday")
+        #expect(screen.summary != nil, "a correction never drops the summary")
+        #expect(screen.summaryIsStale)
+
+        try screen.deleteSummary()
+        #expect(screen.summary == nil)
+        #expect(!FileManager.default.fileExists(atPath: files.summary.path))
+        #expect(!(try String(contentsOf: files.transcriptMarkdown, encoding: .utf8)).contains("## Summary"))
+    }
+
+    @Test func calendarNamesAreOfferedButNotOnesAlreadyEnrolled() async throws {
+        let (screen, files) = try await completedJob()
+        defer { try? FileManager.default.removeItem(at: files.root) }
+        var metadata = try #require(try AtomicFile.readJSON(ImportMetadata.self, from: files.metadata, stage: "IMPORTED"))
+        metadata.calendarEvent = CalendarEventContext(title: "Weekly sync", attendees: ["Dana", "Noam"])
+        try AtomicFile.writeJSON(metadata, to: files.metadata)
+        screen.load()
+
+        #expect(screen.suggestedSpeakerNames == ["Dana", "Noam"])
+        #expect(screen.calendarNameSuggestions(excluding: ["Noam "]) == ["Dana"])
+    }
+
     /// Editing a turn's text throws away its word timings, so its inline
     /// marker has to fall back to a row rather than vanish with them.
     @Test func editingAMarkedTurnMovesItsMarkerToARow() async throws {

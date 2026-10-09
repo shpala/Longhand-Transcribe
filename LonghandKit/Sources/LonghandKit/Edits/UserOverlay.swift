@@ -281,4 +281,16 @@ public struct UserOverlay: Codable, Sendable, Equatable {
         markers.append(Transcript.Marker(time: time, label: label))
         markers.sort { $0.time < $1.time }
     }
+
+    /// Markers made while recording, flags and typed notes alike. A note is a
+    /// marker with a label: the transcript draws it at the moment it was
+    /// typed, among the words being said. Blank labels become plain flags.
+    public mutating func addMarkers(_ new: [Transcript.Marker]) {
+        for marker in new {
+            let label = marker.label?.trimmingCharacters(in: .whitespacesAndNewlines)
+            markers.append(Transcript.Marker(id: marker.id, time: marker.time,
+                                             label: label.flatMap { $0.isEmpty ? nil : $0 }))
+        }
+        markers.sort { $0.time < $1.time }
+    }
 }

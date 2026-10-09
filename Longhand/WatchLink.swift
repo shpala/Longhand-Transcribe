@@ -230,7 +230,8 @@ nonisolated final class WatchLink: NSObject, WCSessionDelegate, @unchecked Senda
                     location: LocationCapture.isEnabled ? pending.location : nil,
                     title: RecordingTitle.forTake(at: pending.recordedAt ?? pending.receivedAt, source: .watch),
                     sourceTakeID: pending.takeID,
-                    markers: pending.markers)
+                    // The watch has a flag button and no keyboard.
+                    markers: pending.markers.map { Transcript.Marker(time: $0) })
                 try? FileManager.default.removeItem(at: audio)
                 try? FileManager.default.removeItem(at: manifest)
                 AppLibrary.model.refresh()

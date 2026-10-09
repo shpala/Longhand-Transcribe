@@ -435,10 +435,13 @@ final class RecorderService {
     // MARK: - Sidecar
 
     /// What the sheet knows and the file does not, kept beside it so a take
-    /// recovered after a kill keeps its flags and its location.
-    func updateSidecar(markers: [TimeInterval]? = nil, location: CapturedLocation? = nil) {
+    /// recovered after a kill keeps its flags, its notes, its location and
+    /// the meeting it was recorded in.
+    func updateSidecar(markers: [Transcript.Marker]? = nil, location: CapturedLocation? = nil,
+                       calendarEvent: CalendarEventContext? = nil) {
         if let markers { sidecar.markers = markers }
         if let location { sidecar.location = location }
+        if let calendarEvent { sidecar.calendarEvent = calendarEvent }
         writeSidecar()
     }
 
@@ -548,9 +551,42 @@ final class RecorderService {
 /// file cannot carry.
 struct TakeSidecar: Codable, Sendable {
     var startedAt: Date
-    var markers: [TimeInterval] = []
+    /// Flags and typed notes, on the take's own clock.
+    var markers: [Transcript.Marker] = []
     var location: CapturedLocation?
+    /// The meeting on the calendar when the take started, for its title.
+    var calendarEvent: CalendarEventContext?
     var importAttempts = 0
+
+    init(startedAt: Date, markers: [Transcript.Marker] = [], location: CapturedLocation? = nil,
+         calendarEvent: CalendarEventContext? = nil, importAttempts: Int = 0) {
+        self.startedAt = startedAt
+        self.markers = markers
+        self.location = location
+        self.calendarEvent = calendarEvent
+        self.importAttempts = importAttempts
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case startedAt, markers, location, calendarEvent, importAttempts
+    }
+
+    /// Sidecars written before notes existed hold markers as bare times. A
+    /// take a kill left behind under the previous build must still recover
+    /// with its flags.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        startedAt = try container.decode(Date.self, forKey: .startedAt)
+        if let typed = try? container.decode([Transcript.Marker].self, forKey: .markers) {
+            markers = typed
+        } else {
+            let times = try container.decodeIfPresent([TimeInterval].self, forKey: .markers) ?? []
+            markers = times.map { Transcript.Marker(time: $0) }
+        }
+        location = try container.decodeIfPresent(CapturedLocation.self, forKey: .location)
+        calendarEvent = try container.decodeIfPresent(CalendarEventContext.self, forKey: .calendarEvent)
+        importAttempts = try container.decodeIfPresent(Int.self, forKey: .importAttempts) ?? 0
+    }
 }
 
 /// A take on disk that is not yet a recording in the library.

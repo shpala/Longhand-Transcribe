@@ -40,7 +40,7 @@ struct MacLibraryView: View {
         var securityScoped = true
         var deleteAfterImport = false
         var title: String?
-        var markers: [TimeInterval] = []
+        var markers: [Transcript.Marker] = []
         var location: CapturedLocation?
         var id: String { urls.map(\.absoluteString).joined() }
     }
@@ -259,6 +259,7 @@ struct MacLibraryView: View {
                 Section(group.day) {
                     ForEach(group.jobs) { job in
                         MacJobRow(job: job, progress: model.progressByJob[job.id],
+                                  hold: model.processingHold,
                                   hit: searchResults?[job.id])
                             .tag(job.id)
                             .contextMenu {
@@ -399,6 +400,8 @@ private struct LibraryPresentations: ViewModifier {
 private struct MacJobRow: View {
     let job: JobRecord
     let progress: PipelineProgress?
+    /// Why nothing is running right now, if the system asked for quiet.
+    var hold: ProcessingHold?
     var hit: LibrarySearch.Result?
 
     var body: some View {
@@ -432,11 +435,19 @@ private struct MacJobRow: View {
             Label(job.errorDescription ?? "Failed", systemImage: "exclamationmark.triangle.fill")
                 .font(.caption).foregroundStyle(.red).lineLimit(2)
         case .interrupted:
-            Label(job.isPaused ? "Paused" : "Interrupted, will resume",
-                  systemImage: job.isPaused ? "pause.circle.fill" : "pause.circle")
-                .font(.caption).foregroundStyle(.orange)
+            if let hold, !job.isPaused {
+                Label(hold.message, systemImage: hold.symbolName)
+                    .font(.caption).foregroundStyle(.orange)
+            } else {
+                Label(job.isPaused ? "Paused" : "Interrupted, will resume",
+                      systemImage: job.isPaused ? "pause.circle.fill" : "pause.circle")
+                    .font(.caption).foregroundStyle(.orange)
+            }
         default:
-            if job.pausedByUser == true {
+            if let hold, progress == nil {
+                Label(hold.message, systemImage: hold.symbolName)
+                    .font(.caption).foregroundStyle(.orange)
+            } else if job.pausedByUser == true {
                 Label("Stopping…", systemImage: "hourglass")
                     .font(.caption).foregroundStyle(.secondary)
             } else if let progress {
@@ -467,10 +478,10 @@ private struct MacJobRow: View {
 
 /// The signature indigo record surface, Mac-sized.
 struct MacRecordSheet: View {
-    let onSave: (URL, CapturedLocation?, [TimeInterval]) -> Void
+    let onSave: (URL, CapturedLocation?, [Transcript.Marker]) -> Void
     /// Routes the take through the same options an import gets (§7.1) rather
     /// than committing it to the saved defaults.
-    let onSaveWithOptions: (URL, CapturedLocation?, [TimeInterval]) -> Void
+    let onSaveWithOptions: (URL, CapturedLocation?, [Transcript.Marker]) -> Void
     let onCancel: () -> Void
 
     @State private var recorder = MacRecorderService()
@@ -479,7 +490,9 @@ struct MacRecordSheet: View {
     /// and it never blocks the save path.
     @State private var locationCapture = LocationCapture()
     @State private var capturedLocation: CapturedLocation?
-    @State private var markers: [TimeInterval] = []
+    /// Flags and typed notes, on the recorder's clock.
+    @State private var markers: [Transcript.Marker] = []
+    @State private var noteText = ""
     @State private var showDiscardConfirm = false
     /// Fixed once: `.now` here would be re-evaluated on every body pass, so
     /// each state change would restart the timer's schedule.
@@ -514,13 +527,19 @@ struct MacRecordSheet: View {
                         .foregroundStyle(cream)
                 }
                 if !markers.isEmpty {
-                    Text("\(markers.count) marked")
+                    Text(markerSummary)
                         .font(.caption).foregroundStyle(cream.opacity(0.7))
                 }
                 MacWaveformMeter(recorder: recorder)
                     .frame(height: 52)
                     .padding(.horizontal, 24)
                     .opacity(recorder.state == .paused ? 0.35 : 1)
+                // A note typed now lands at this moment in the transcript.
+                TextField("Add a note at this moment", text: $noteText)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit(addNote)
+                    .disabled(!isCapturing)
+                    .padding(.horizontal, 24)
                 HStack(spacing: 24) {
                     Button(recorder.state == .paused ? "Resume" : "Pause") {
                         if recorder.state == .recording { recorder.pause() } else { recorder.resume() }
@@ -528,10 +547,11 @@ struct MacRecordSheet: View {
                     .tint(cream)
                     // Safe while paused: `currentTime` freezes at the pause
                     // point and paused time never counts.
-                    Button("Mark") { markers.append(recorder.currentTime) }
+                    Button("Mark") { markers.append(Transcript.Marker(time: recorder.currentTime)) }
                         .tint(cream)
-                        .disabled(recorder.state != .recording && recorder.state != .paused)
+                        .disabled(!isCapturing)
                     Button {
+                        addNote()
                         if let url = recorder.stop() { onSave(url, capturedLocation, markers) }
                     } label: {
                         Label("Stop & Save", systemImage: "stop.circle.fill")
@@ -540,6 +560,7 @@ struct MacRecordSheet: View {
                 }
                 // Labelled as ending the take, because it does.
                 Button {
+                    addNote()
                     if let url = recorder.stop() {
                         onSaveWithOptions(url, capturedLocation, markers)
                     }
@@ -562,7 +583,7 @@ struct MacRecordSheet: View {
             .foregroundStyle(cream.opacity(0.6))
         }
         .padding(32)
-        .frame(width: 420, height: 300)
+        .frame(width: 420, height: 340)
         .background(Color("LonghandIndigo"))
         .environment(\.colorScheme, .dark)
         .confirmationDialog("Discard this recording?",
@@ -601,13 +622,30 @@ struct MacRecordSheet: View {
         recorder.state == .recording || recorder.state == .paused
     }
 
+    private var markerSummary: String {
+        let notes = markers.filter { $0.label != nil }.count
+        let flags = markers.count - notes
+        var parts: [String] = []
+        if flags > 0 { parts.append("\(flags) marked") }
+        if notes > 0 { parts.append("\(notes) note\(notes == 1 ? "" : "s")") }
+        return parts.joined(separator: " · ")
+    }
+
+    private func addNote() {
+        let text = noteText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, isCapturing else { return }
+        markers.append(Transcript.Marker(time: recorder.currentTime, label: text))
+        noteText = ""
+    }
+
     /// The same as the sheet's own buttons, for Siri and Shortcuts.
     private func perform(_ command: LiveRecordingCommand) {
         switch command {
         case .pause: if recorder.state == .recording { recorder.pause() }
         case .resume: if recorder.state == .paused { recorder.resume() }
-        case .mark: if isCapturing { markers.append(recorder.currentTime) }
+        case .mark: if isCapturing { markers.append(Transcript.Marker(time: recorder.currentTime)) }
         case .stop:
+            addNote()
             if let url = recorder.stop() { onSave(url, capturedLocation, markers) }
         }
     }

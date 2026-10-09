@@ -62,6 +62,7 @@ The UI-test suites are the interaction harness; run them with `$D uitest`:
 | `LonghandUITests/TranscriptEditingUITests` | edit a turn, revert it (needs `seed-sim`) |
 | `LonghandUITests/WordSeekUITests` | tap a word → playhead jumps to it (needs `seed-sim`) |
 | `LonghandUITests/TakeRecoveryUITests` | kill the app mid-take → relaunch imports it; a refused take is listed and Save imports it (`--uitest-unsaved-take`) |
+| `LonghandUITests/NotesDuringRecordingUITests` | type a note while recording → it is in the transcript (skips if the job cannot complete on this simulator) |
 | `LonghandUITests/AppStoreScreenshotTests` | the App Store screenshot set (needs `seed-store-demo`) |
 
 **Ordering matters when you batch them.** The four "needs `seed-sim`" suites
@@ -421,6 +422,17 @@ Useless for agents; nothing to observe programmatically.
   until imported; `--uitest-reset` wipes that folder with the library. A take
   left there by a kill is imported on the next launch; one whose import
   failed is listed under "Unsaved takes" (`unsaved-take` rows).
+- **Summaries need Apple Intelligence on the host.** The Foundation Models
+  framework in a simulator uses the Mac's own model, so `SystemLanguageModel`
+  reports `appleIntelligenceNotEnabled` or `deviceNotEligible` on a Mac
+  without it, the Settings toggle is disabled with that reason, and the
+  transcript card says so instead of offering Summarize. Not a bug in the
+  app; nothing to download. Hebrew and Russian are refused by design.
+- **A hold is not a pause.** Low Power Mode or a serious thermal state stops
+  every job (`status-HELD` rows) without `pausedByUser`; they resume when the
+  condition lifts. A simulator inherits neither from the host, so the hold
+  path is covered by `ProcessingHoldTests` in LonghandEngines, not by a UI
+  suite.
 - **Ground truth is the container, not the UI.** `job.json` (state, error,
   degradations), `10_asr.json`, `20_diarization.json`, `transcript.json` tell
   you exactly what happened. `$D pull sim|device` first, guess never.

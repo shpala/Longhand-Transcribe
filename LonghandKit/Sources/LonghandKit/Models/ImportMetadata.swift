@@ -39,6 +39,24 @@ public struct CapturedLocation: Codable, Sendable, Equatable {
     }
 }
 
+/// The calendar event a take was recorded during, when the user has asked for
+/// calendar titles. Lives in metadata.json ONLY, beside the location: the
+/// attendee list is other people's names and is never part of any export.
+/// The names are offered when naming a speaker, nothing more.
+public struct CalendarEventContext: Codable, Sendable, Equatable {
+    public var title: String
+    /// Attendees other than the user, by display name, in the calendar's
+    /// order. Empty for an event with no invitees.
+    public var attendees: [String]
+    public var startDate: Date?
+
+    public init(title: String, attendees: [String] = [], startDate: Date? = nil) {
+        self.title = title
+        self.attendees = attendees
+        self.startDate = startDate
+    }
+}
+
 /// metadata.json, written at import (§5.2, §5.3). Channel measurements are
 /// recorded but not branched on: the dual-channel diarizer bypass is deferred
 /// behind the §5.3 gate, and these measurements are the evidence it needs.
@@ -67,6 +85,9 @@ public struct ImportMetadata: Codable, Sendable, Equatable {
     /// Identifier the watch stamped on a take it sent, so the phone can report
     /// progress back for *that* take rather than "the newest job".
     public var sourceTakeID: String?
+    /// The calendar event the take overlapped, when calendar titles are on.
+    /// metadata.json only, never exported.
+    public var calendarEvent: CalendarEventContext?
 
     public init(importedAt: Date, sourceHash: String, sourceFileSize: Int64,
                 sourceExtension: String, sourceFormat: String,
@@ -74,7 +95,7 @@ public struct ImportMetadata: Codable, Sendable, Equatable {
                 durationSeconds: TimeInterval? = nil, channelCount: Int? = nil,
                 channelRMSEnergy: [Double]? = nil, interChannelCorrelation: Double? = nil,
                 appliedGainDb: Double? = nil, location: CapturedLocation? = nil,
-                sourceTakeID: String? = nil) {
+                sourceTakeID: String? = nil, calendarEvent: CalendarEventContext? = nil) {
         self.importedAt = importedAt
         self.sourceHash = sourceHash
         self.sourceFileSize = sourceFileSize
@@ -89,5 +110,6 @@ public struct ImportMetadata: Codable, Sendable, Equatable {
         self.appliedGainDb = appliedGainDb
         self.location = location
         self.sourceTakeID = sourceTakeID
+        self.calendarEvent = calendarEvent
     }
 }

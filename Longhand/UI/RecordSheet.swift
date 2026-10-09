@@ -4,11 +4,22 @@ import LonghandEngines
 
 /// Record-in-app sheet. On save the file goes through the normal import flow,
 /// so a recorded take and an imported file follow the identical pipeline.
+/// Everything the sheet knew about a take that the audio file does not carry,
+/// handed over with the file when the take is saved.
+struct TakeDetails {
+    var location: CapturedLocation?
+    /// Flags and typed notes, on the take's own clock.
+    var markers: [Transcript.Marker] = []
+    var calendarEvent: CalendarEventContext?
+
+    var title: String { RecordingTitle.forTake(event: calendarEvent) }
+}
+
 struct RecordSheet: View {
 
-    let onSave: (URL, CapturedLocation?, [TimeInterval]) -> Void
+    let onSave: (URL, TakeDetails) -> Void
     /// Routes the take through the same options sheet an import gets (§7.1).
-    let onSaveWithOptions: (URL, CapturedLocation?, [TimeInterval]) -> Void
+    let onSaveWithOptions: (URL, TakeDetails) -> Void
     let onCancel: () -> Void
 
     @State private var recorder = RecorderService()
@@ -17,10 +28,15 @@ struct RecordSheet: View {
     /// and it never blocks the save path.
     @State private var locationCapture = LocationCapture()
     @State private var capturedLocation: CapturedLocation?
-    /// `AVAudioRecorder.currentTime` excludes paused time, so these line up
-    /// with the transcript's clock.
-    @State private var markers: [TimeInterval] = []
+    /// The meeting this take is being recorded in, when calendar titles are
+    /// on. Read once, like the location, and never blocks the take.
+    @State private var calendarEvent: CalendarEventContext?
+    /// The recorder's clock excludes paused time, so these line up with the
+    /// transcript's clock. A note is a marker with a label.
+    @State private var markers: [Transcript.Marker] = []
     @State private var markerHaptic = 0
+    @State private var noteText = ""
+    @FocusState private var noteFocused: Bool
     @State private var showDiscardConfirm = false
     /// Fixed once, so the elapsed timer's schedule does not move when the sheet
     /// re-renders for an unrelated reason.
@@ -58,6 +74,16 @@ struct RecordSheet: View {
                             .foregroundStyle(cream)
                             .accessibilityIdentifier("record-elapsed")
                     }
+                    if let event = calendarEvent {
+                        // The name the recording will get, visible now rather
+                        // than discovered in the library.
+                        Label(event.title, systemImage: "calendar")
+                            .font(.subheadline)
+                            .foregroundStyle(cream.opacity(0.8))
+                            .lineLimit(1)
+                            .accessibilityLabel("Calendar event: \(event.title)")
+                            .accessibilityIdentifier("record-calendar-event")
+                    }
                     WaveformMeter(recorder: recorder)
                         .frame(height: 64)
                         .padding(.horizontal, 32)
@@ -79,6 +105,9 @@ struct RecordSheet: View {
                         if recorder.state == .recording || recorder.state == .paused {
                             optionsButton
                         }
+                    }
+                    if recorder.state == .recording || recorder.state == .paused {
+                        noteField
                     }
                     if let error = recorder.lastError {
                         Text(error)
@@ -132,11 +161,20 @@ struct RecordSheet: View {
         .onChange(of: recorder.state) { _, _ in syncLiveActivity() }
         .onChange(of: recorder.isInterrupted) { _, interrupted in
             // A call that cut in with the phone in a pocket leaves a gap the
-            // transcript cannot show. A flag at the point marks where it is.
-            if interrupted { mark() }
+            // transcript cannot show. A flag at the point marks where it is,
+            // and a notification says so to a phone that is not looking.
+            if interrupted {
+                mark()
+                TakeNotifier.takeStopped(.interrupted)
+            } else {
+                TakeNotifier.clear()
+            }
             syncLiveActivity()
         }
-        .onChange(of: recorder.isHalted) { _, _ in syncLiveActivity() }
+        .onChange(of: recorder.isHalted) { _, halted in
+            if halted { TakeNotifier.takeStopped(.halted(recorder.lastError)) }
+            syncLiveActivity()
+        }
         .onChange(of: markers.count) { _, _ in
             recorder.updateSidecar(markers: markers)
             syncLiveActivity()
@@ -147,11 +185,19 @@ struct RecordSheet: View {
         .onDisappear {
             LiveRecordingControls.handler = nil
             liveActivity.end()
+            TakeNotifier.clear()
         }
         .task {
             if await RecorderService.requestPermission() {
                 await recorder.start()
                 syncLiveActivity()
+                // After the microphone is open: the take must not wait on a
+                // second permission sheet.
+                await TakeNotifier.requestAuthorizationIfNeeded()
+                if CalendarContext.isEnabled {
+                    calendarEvent = await CalendarContext.current()
+                    recorder.updateSidecar(calendarEvent: calendarEvent)
+                }
                 if LocationCapture.isEnabled {
                     capturedLocation = await locationCapture.capture()
                     recorder.updateSidecar(location: capturedLocation)
@@ -160,6 +206,46 @@ struct RecordSheet: View {
                 permissionDenied = true
             }
         }
+    }
+
+    /// A note typed now lands at this moment in the transcript, among the
+    /// words being said, so "decided: ship Tuesday" sits next to the sentence
+    /// that decided it. Return adds it; the field stays for the next one.
+    private var noteField: some View {
+        HStack(spacing: 8) {
+            TextField("Add a note at this moment", text: $noteText)
+                .textFieldStyle(.plain)
+                .foregroundStyle(cream)
+                .tint(cream)
+                .submitLabel(.done)
+                .focused($noteFocused)
+                .onSubmit(addNote)
+                .accessibilityIdentifier("record-note")
+            Button(action: addNote) {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.title3)
+            }
+            .foregroundStyle(cream)
+            .disabled(noteText.trimmingCharacters(in: .whitespaces).isEmpty)
+            .accessibilityLabel("Add note")
+            .accessibilityIdentifier("record-note-add")
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(cream.opacity(0.12), in: Capsule())
+        .padding(.horizontal, 24)
+    }
+
+    private func addNote() {
+        let text = noteText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        markers.append(Transcript.Marker(time: recorder.currentTime, label: text))
+        noteText = ""
+        markerHaptic += 1
+    }
+
+    private var details: TakeDetails {
+        TakeDetails(location: capturedLocation, markers: markers, calendarEvent: calendarEvent)
     }
 
     @ViewBuilder private var controls: some View {
@@ -248,13 +334,15 @@ struct RecordSheet: View {
     }
 
     private func stopAndSave() async {
+        // Something typed and not yet added is still a note.
+        addNote()
         if let url = await recorder.stop() {
-            onSave(url, capturedLocation, markers)
+            onSave(url, details)
         }
     }
 
     private func mark() {
-        markers.append(recorder.currentTime)
+        markers.append(Transcript.Marker(time: recorder.currentTime))
         markerHaptic += 1
     }
 
@@ -301,9 +389,10 @@ struct RecordSheet: View {
     }
 
     private func stopAndSaveWithOptions() {
+        addNote()
         Task {
             if let url = await recorder.stop() {
-                onSaveWithOptions(url, capturedLocation, markers)
+                onSaveWithOptions(url, details)
             }
         }
     }
@@ -315,8 +404,12 @@ struct RecordSheet: View {
     }
 
     private var statusText: String {
-        // A flag press has to be acknowledged, or you press it twice.
-        let flags = markers.isEmpty ? "" : " · \(markers.count) marked"
+        // A flag press has to be acknowledged, or you press it twice; so
+        // does a note, which the field has already cleared.
+        let noteCount = markers.filter { $0.label != nil }.count
+        let flagCount = markers.count - noteCount
+        var flags = flagCount == 0 ? "" : " · \(flagCount) marked"
+        if noteCount > 0 { flags += " · \(noteCount) note\(noteCount == 1 ? "" : "s")" }
         switch recorder.state {
         case .idle: return recorder.lastError == nil ? "Starting…" : "Couldn't start"
         case .recording: return "Recording" + flags

@@ -57,7 +57,8 @@ public nonisolated enum ImportService {
                                 location: CapturedLocation? = nil,
                                 title: String? = nil,
                                 sourceTakeID: String? = nil,
-                                markers: [TimeInterval] = []) async throws -> ImportedJob {
+                                markers: [Transcript.Marker] = [],
+                                calendarEvent: CalendarEventContext? = nil) async throws -> ImportedJob {
         if securityScoped {
             guard sourceURL.startAccessingSecurityScopedResource() else {
                 throw LonghandError.decodeFailed(reason: "the provider denied access to the file")
@@ -105,15 +106,17 @@ public nonisolated enum ImportService {
             declaredLanguage: declaredLanguage,
             expectedSpeakerCount: expectedSpeakerCount,
             location: resolvedLocation,
-            sourceTakeID: sourceTakeID
+            sourceTakeID: sourceTakeID,
+            // The setting governs storing it, as with location.
+            calendarEvent: CalendarContext.isEnabled ? calendarEvent : nil
         )
         try AtomicFile.writeJSON(metadata, to: files.metadata)
 
-        // User-authored content, so it starts life in the overlay rather than
-        // in anything the pipeline regenerates.
+        // User-authored content (flags and typed notes), so it starts life in
+        // the overlay rather than in anything the pipeline regenerates.
         if !markers.isEmpty {
             var overlay = UserOverlay()
-            for time in markers { overlay.addMarker(at: time) }
+            overlay.addMarkers(markers)
             try AtomicFile.writeJSON(overlay, to: files.overlay)
         }
 

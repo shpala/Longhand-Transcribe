@@ -71,9 +71,11 @@ struct LibraryView: View {
         var deleteAfterImport: Bool
         /// Set for in-app takes, which have no meaningful filename.
         var title: String?
-        var markers: [TimeInterval] = []
+        var markers: [Transcript.Marker] = []
         /// In-app takes only; picked files fall back to embedded metadata.
         var location: CapturedLocation?
+        /// In-app takes only: the meeting the take was recorded in.
+        var calendarEvent: CalendarEventContext?
         var id: String { urls.map(\.absoluteString).joined() }
     }
 
@@ -361,7 +363,8 @@ struct LibraryView: View {
                 open(job)
             } label: {
                 HStack(spacing: 8) {
-                    JobRow(job: job, progress: model.progressByJob[job.id], hit: hit)
+                    JobRow(job: job, progress: model.progressByJob[job.id], hit: hit,
+                           hold: model.processingHold)
                     Spacer(minLength: 0)
                     // No chevron on iPad: nothing is being pushed.
                     if !Self.isPad {
@@ -513,8 +516,9 @@ struct LibraryView: View {
             declaredLanguage: declaredLanguage == "system" ? nil : declaredLanguage,
             expectedSpeakerCount: speakerCount == 0 ? nil : speakerCount,
             location: take.sidecar?.location,
-            title: RecordingTitle.forTake(at: take.startedAt),
-            markers: take.sidecar?.markers ?? [])
+            title: RecordingTitle.forTake(at: take.startedAt, event: take.sidecar?.calendarEvent),
+            markers: take.sidecar?.markers ?? [],
+            calendarEvent: take.sidecar?.calendarEvent)
     }
 
     private func takeRow(_ take: UnsavedTake) -> some View {
@@ -534,7 +538,8 @@ struct LibraryView: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text(RecordingTitle.forTake(at: take.startedAt)).font(.headline).lineLimit(1)
+                        Text(RecordingTitle.forTake(at: take.startedAt, event: take.sidecar?.calendarEvent))
+                            .font(.headline).lineLimit(1)
                         Spacer()
                         if let duration = take.duration {
                             Text(Duration.seconds(duration).formatted(.time(pattern: .hourMinuteSecond)))
@@ -654,7 +659,8 @@ struct LibraryView: View {
                             expectedSpeakerCount: speakerCount == 0 ? nil : speakerCount,
                             location: stranded.location,
                             title: stranded.title,
-                            markers: stranded.markers)
+                            markers: stranded.markers,
+                            calendarEvent: stranded.calendarEvent)
                     }
                 }
             }, content: importOptionsSheet)
@@ -724,7 +730,7 @@ struct LibraryView: View {
     }
 
     private var recordSheet: some View {
-        RecordSheet { url, location, markers in
+        RecordSheet { url, details in
             showRecorder = false
             importingTakes.insert(url)
             // Straight to processing on the saved defaults; language and
@@ -735,16 +741,18 @@ struct LibraryView: View {
                 deleteSourceAfterImport: true,
                 declaredLanguage: declaredLanguage == "system" ? nil : declaredLanguage,
                 expectedSpeakerCount: speakerCount == 0 ? nil : speakerCount,
-                location: location,
-                title: RecordingTitle.forTake(),
-                markers: markers)
-        } onSaveWithOptions: { url, location, markers in
+                location: details.location,
+                title: details.title,
+                markers: details.markers,
+                calendarEvent: details.calendarEvent)
+        } onSaveWithOptions: { url, details in
             showRecorder = false
             importingTakes.insert(url)
             // Same options sheet an imported file gets (§7.1).
             pendingImport = PendingImport(urls: [url], securityScoped: false, deleteAfterImport: true,
-                                          title: RecordingTitle.forTake(), markers: markers,
-                                          location: location)
+                                          title: details.title, markers: details.markers,
+                                          location: details.location,
+                                          calendarEvent: details.calendarEvent)
         } onCancel: {
             showRecorder = false
         }
@@ -794,7 +802,8 @@ struct LibraryView: View {
                     expectedSpeakerCount: speakerCount == 0 ? nil : speakerCount,
                     location: pending.location,
                     title: pending.title,
-                    markers: pending.markers)
+                    markers: pending.markers,
+                    calendarEvent: pending.calendarEvent)
             }
             pendingImport = nil
         } onCancel: {
@@ -813,6 +822,8 @@ private struct JobRow: View {
     let job: JobRecord
     let progress: PipelineProgress?
     var hit: LibrarySearch.Result?
+    /// Why nothing is running right now, if the system asked for quiet.
+    var hold: ProcessingHold?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -887,6 +898,11 @@ private struct JobRow: View {
                 Label("Paused", systemImage: "pause.circle.fill")
                     .font(.caption).foregroundStyle(.orange)
                     .accessibilityIdentifier("status-PAUSED")
+            } else if let hold {
+                // Stopped for the device's sake, and says which.
+                Label(hold.message, systemImage: hold.symbolName)
+                    .font(.caption).foregroundStyle(.orange)
+                    .accessibilityIdentifier("status-HELD")
             } else {
                 Label("Interrupted, resumes when the app is open", systemImage: "pause.circle")
                     .font(.caption).foregroundStyle(.orange)
@@ -896,7 +912,11 @@ private struct JobRow: View {
             // A stop is not instant: the pipeline finishes the stage it is in
             // before it can checkpoint, and a row still showing progress would
             // look like the tap did nothing.
-            if job.pausedByUser == true {
+            if let hold, progress == nil {
+                Label(hold.message, systemImage: hold.symbolName)
+                    .font(.caption).foregroundStyle(.orange)
+                    .accessibilityIdentifier("status-HELD")
+            } else if job.pausedByUser == true {
                 HStack(spacing: 6) {
                     ProgressView().controlSize(.mini)
                     Text("Stopping…").font(.caption).foregroundStyle(.secondary)
@@ -1011,6 +1031,11 @@ private struct SettingsSheet: View {
     @State private var diskUsage: Int64 = 0
     @State private var leftoverBytes: Int64 = 0
     @AppStorage(LocationCapture.settingsKey) private var captureLocation = false
+    @AppStorage(CalendarContext.settingsKey) private var useCalendar = false
+    @AppStorage(TranscriptSummarizer.settingsKey) private var summarize = true
+    @AppStorage(ProcessingHold.lowPowerKey) private var pauseInLowPower = true
+    /// Read once per appearance: the answer involves a system query.
+    @State private var summaryAvailability = TranscriptSummarizer.Availability.available
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -1030,6 +1055,37 @@ private struct SettingsSheet: View {
                     Text("Location")
                 } footer: {
                     Text("Off by default. Tags new recordings with where they were made, including takes recorded on your Apple Watch, which follows this setting. Stored only on this device, shown only to you, and never included in exports.")
+                }
+                Section {
+                    Toggle("Name recordings after calendar events", isOn: $useCalendar)
+                        .accessibilityIdentifier("settings-calendar")
+                } header: {
+                    Text("Calendar")
+                } footer: {
+                    Text("Off by default. A recording made during a calendar event takes the event's name, and the event's attendees are offered when you name a speaker. Longhand reads your calendar only when a recording starts, never writes to it, and keeps the event with the recording on this device.")
+                }
+                Section {
+                    Toggle("Summarize new transcripts", isOn: $summarize)
+                        .disabled(!summaryAvailability.isAvailable)
+                        .accessibilityIdentifier("settings-summaries")
+                } header: {
+                    Text("Summaries")
+                } footer: {
+                    if let reason = summaryAvailability.explanation {
+                        Text(reason)
+                    } else {
+                        Text("Apple's on-device model writes a short summary with key points, decisions and action items when a transcript finishes. Nothing leaves this device. Only languages the model speaks are summarized; any transcript can be summarized later from its own screen.")
+                    }
+                }
+                Section {
+                    Toggle("Pause transcription in Low Power Mode", isOn: $pauseInLowPower)
+                        .onChange(of: pauseInLowPower) { _, _ in
+                            AppLibrary.model.reevaluateProcessingHold()
+                        }
+                } header: {
+                    Text("Battery")
+                } footer: {
+                    Text("Transcription is minutes of heavy work. With this on, it waits while Low Power Mode is on and continues when it ends. Transcription always waits while the device is too hot.")
                 }
                 ModelSettingsSection()
                 Section {
@@ -1077,6 +1133,7 @@ private struct SettingsSheet: View {
         .task {
             diskUsage = AppLibrary.model.totalDiskUsage() + WatchLink.incomingBytes()
             leftoverBytes = ModelStaging.totalLeftoverBytes()
+            summaryAvailability = TranscriptSummarizer.deviceAvailability
         }
     }
 }

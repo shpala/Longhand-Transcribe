@@ -72,7 +72,8 @@ extension UITestSupport {
             }
         }
         try? file.write(from: buffer)
-        let sidecar = TakeSidecar(startedAt: Date().addingTimeInterval(-600), markers: [1.0], importAttempts: 1)
+        let sidecar = TakeSidecar(startedAt: Date().addingTimeInterval(-600),
+                                  markers: [Transcript.Marker(time: 1.0)], importAttempts: 1)
         try? AtomicFile.writeJSON(sidecar, to: RecorderService.sidecarURL(for: url))
     }
 

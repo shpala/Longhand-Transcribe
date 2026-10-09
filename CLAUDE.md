@@ -142,6 +142,18 @@ Three layers with hard boundaries:
   restart, or under 50 MB free. A take starting calls
   `TranscriptPlayer.suspendForRecording()`, which pauses and releases Now
   Playing and makes `play()` refuse until the take ends.
+  A note typed on the record sheet is a labelled `Transcript.Marker`, carried
+  with the flags through the sidecar and `ImportService(markers:)` into the
+  overlay; the transcript already renders labelled markers. A finished
+  transcript gets a summary from Apple's on-device model (Foundation Models
+  framework, `TranscriptSummarizer`) into `summary.json`: not a checkpoint,
+  not overlay content, read by `writeAll` into the Markdown only, labelled
+  stale after a correction, deleted by a re-transcribe, and refused up front
+  for languages the model does not speak. Calendar titles (`CalendarContext`,
+  off by default) and the attendee names live in `metadata.json` beside the
+  location, under the same never-exported rule. `ProcessingHold` stops the
+  pipeline in Low Power Mode or at a serious thermal state and
+  `JobLibraryModel` resumes it when the hold lifts.
   Watch: capture UI + `WCSession` hand-off, plus
   `LonghandComplication/`, a WidgetKit extension embedded in the watch app
   whose tap opens `longhand://record` to start a take. Mac:

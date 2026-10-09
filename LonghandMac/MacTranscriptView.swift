@@ -30,6 +30,9 @@ struct MacTranscriptView: View {
     @State private var exportDocument: ExportDocument?
     @State private var exportName = ""
     @State private var showExporter = false
+    @State private var showSummaryEditor = false
+    /// Why this transcript cannot be summarized, read once per load.
+    @State private var summaryUnavailableReason: String?
     @Environment(JobLibraryModel.self) private var model
 
     init(jobID: UUID) {
@@ -54,9 +57,15 @@ struct MacTranscriptView: View {
         var contentType: UTType
         /// The clipboard is a boundary too (§14.1).
         var toClipboard: Bool = false
+        /// Text to copy instead of the file's contents: the summary has no
+        /// file of its own.
+        var text: String?
     }
 
-    var body: some View {
+    /// The screen's own content, in an expression of its own: the modifier
+    /// chain below is long enough that the type-checker gives up on the
+    /// two together.
+    @ViewBuilder private var screenContent: some View {
         Group {
             if let transcript, transcript.turns.isEmpty {
                 ContentUnavailableView {
@@ -124,6 +133,13 @@ struct MacTranscriptView: View {
                 ProgressView("Loading transcript…")
             }
         }
+    }
+
+    /// Content, chrome and the editing sheets; the alerts, the export
+    /// dialog and the lifecycle hooks follow in `body`. Two expressions,
+    /// because one was more than the type-checker would finish.
+    private var screenWithSheets: some View {
+        screenContent
         .navigationTitle(record?.title ?? "Transcript")
         .searchable(text: $query, prompt: "Find in transcript")
         .onChange(of: query) { _, _ in
@@ -156,9 +172,18 @@ struct MacTranscriptView: View {
                 editTarget = nil
             }
         }
+        .summaryEditor(isPresented: $showSummaryEditor, summary: screen.summary) { edited in
+            correct { try screen.saveSummary(edited) }
+        }
+        // The summary arrives after the job: reload the text under the card
+        // without touching playback.
+        .onChange(of: isSummarizing) { _, working in
+            if !working { screen.load() }
+        }
         .sheet(item: $renameTarget) { target in
             MacRenameSpeakerSheet(cluster: target.cluster, name: target.currentName,
-                                  canEnroll: target.canEnroll) { newName, enroll in
+                                  canEnroll: target.canEnroll,
+                                  suggestions: screen.suggestedSpeakerNames) { newName, enroll in
                 rename(cluster: target.cluster, to: newName)
                 if enroll {
                     enrollVoice(cluster: target.cluster, as: newName)
@@ -176,6 +201,10 @@ struct MacTranscriptView: View {
                 newSpeakerTarget = nil
             }
         }
+    }
+
+    var body: some View {
+        screenWithSheets
         .retryableErrorAlert($failure)
         .alert("Nothing to Re-identify",
                isPresented: Binding(get: { infoMessage != nil },
@@ -192,7 +221,7 @@ struct MacTranscriptView: View {
             if let target = pendingExport {
                 Button(target.toClipboard ? "Copy \(target.label)" : "Save \(target.label)…") {
                     if target.toClipboard {
-                        if let text = try? String(contentsOf: target.url, encoding: .utf8) {
+                        if let text = target.text ?? (try? String(contentsOf: target.url, encoding: .utf8)) {
                             NSPasteboard.general.clearContents()
                             NSPasteboard.general.setString(text, forType: .string)
                         } else {
@@ -279,6 +308,7 @@ struct MacTranscriptView: View {
                             .buttonStyle(.plain)
                             .help("Recording location. Opens in Maps.")
                         }
+                        summaryCard
                         if let record, !record.degradations.isEmpty {
                             ForEach(record.degradations, id: \.self) { note in
                                 VStack(alignment: .leading, spacing: 8) {
@@ -428,10 +458,44 @@ struct MacTranscriptView: View {
         }
     }
 
+    private var isSummarizing: Bool { model.summarizingJobs.contains(jobID) }
+
+    /// The summary, or the way to get one, above the turns as on iOS.
+    private var summaryCard: some View {
+        SummaryCard(summary: screen.summary,
+                    isStale: screen.summaryIsStale,
+                    isWorking: isSummarizing,
+                    unavailableReason: summaryUnavailableReason,
+                    errorText: model.summaryErrors[jobID],
+                    onGenerate: summarize,
+                    onEdit: { showSummaryEditor = true },
+                    onCopy: {
+                        if let summary = screen.summary {
+                            pendingExport = ExportTarget(label: "Summary", url: screen.files.summary,
+                                                         contentType: .plainText, toClipboard: true,
+                                                         text: summary.plainText)
+                        }
+                    },
+                    onDelete: { correct { try screen.deleteSummary() } })
+    }
+
+    private func summarize() {
+        Task {
+            await model.summarize(jobID: jobID)
+            screen.load()
+        }
+    }
+
     /// Re-identification after new enrollment (§10 re-entry edge) and
     /// explicit re-transcription (§13.2).
     private var actionsMenu: some View {
         Menu {
+            if screen.summary == nil, summaryUnavailableReason == nil,
+               !model.summarizingJobs.contains(jobID) {
+                Button(action: summarize) {
+                    Label("Summarize", systemImage: "sparkles")
+                }
+            }
             Button {
                 reidentifySpeakers()
             } label: {
@@ -527,6 +591,7 @@ struct MacTranscriptView: View {
     /// Opening a recording: the data and the player both.
     private func load() {
         screen.load()
+        summaryUnavailableReason = TranscriptSummarizer.availability(for: screen.transcript?.language).explanation
         currentTurn = nil
         // The stored preference is a starting point, not an override: a rate
         // chosen from the Playback menu since the last load survives.

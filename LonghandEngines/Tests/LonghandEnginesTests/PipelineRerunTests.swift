@@ -511,7 +511,13 @@ func transcript(_ files: JobFiles) throws -> Transcript {
         }
 
         let after = Set((try? FileManager.default.contentsOfDirectory(atPath: root.path)) ?? [])
-        #expect(after.subtracting(before).isEmpty, "a failed import left a job folder behind")
+        // A leaked import is a folder with audio and no job.json: the library
+        // cannot list it and nothing collects it. A folder with a record is
+        // another test's job, staged under the root while this one ran.
+        let leaked = after.subtracting(before).filter { name in
+            !FileManager.default.fileExists(atPath: JobFiles(root: root.appendingPathComponent(name)).job.path)
+        }
+        #expect(leaked.isEmpty, "a failed import left a job folder behind")
     }
 }
 
@@ -586,12 +592,16 @@ func transcript(_ files: JobFiles) throws -> Transcript {
         defer { try? FileManager.default.removeItem(at: files.root) }
         try await JobPipeline.run(files: files, engines: stubEngines(), progress: { _ in })
         let before = try String(contentsOf: files.transcriptMarkdown, encoding: .utf8)
+        // A summary of the words about to be replaced goes with them.
+        try AtomicFile.writeJSON(TranscriptSummary(model: "test", transcriptHash: "x", overview: "old"),
+                                 to: files.summary)
 
         try JobPipeline.retranscribe(files: files, newLanguage: "he")
 
         // Inference checkpoints gone, readable transcript still there.
         #expect(!FileManager.default.fileExists(atPath: files.asr.path))
         #expect(!FileManager.default.fileExists(atPath: files.mergedWords.path))
+        #expect(!FileManager.default.fileExists(atPath: files.summary.path))
         #expect(try String(contentsOf: files.transcriptMarkdown, encoding: .utf8) == before)
 
         let record = try #require(try AtomicFile.readJSON(JobRecord.self, from: files.job, stage: "job"))

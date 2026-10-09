@@ -741,6 +741,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Longhand/Info.plist;
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Longhand names a recording after the calendar event it was made during, and offers the event's attendees when you name a speaker. Nothing is written to your calendar, and nothing leaves this device.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Longhand tags new recordings with where they were made. Location is stored only on this device and never included in exports.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Longhand records audio only when you start a recording, and processes it entirely on this device.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Longhand uses Apple's on-device speech recognition to turn your recordings into text. Audio and transcripts stay on this device.";
@@ -777,6 +778,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Longhand/Info.plist;
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Longhand names a recording after the calendar event it was made during, and offers the event's attendees when you name a speaker. Nothing is written to your calendar, and nothing leaves this device.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Longhand tags new recordings with where they were made. Location is stored only on this device and never included in exports.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Longhand records audio only when you start a recording, and processes it entirely on this device.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Longhand uses Apple's on-device speech recognition to turn your recordings into text. Audio and transcripts stay on this device.";
