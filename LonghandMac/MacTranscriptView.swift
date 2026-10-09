@@ -31,6 +31,24 @@ struct MacTranscriptView: View {
     @State private var exportName = ""
     @State private var showExporter = false
     @State private var showSummaryEditor = false
+    @State private var showMarkers = false
+    @State private var editingMarker: Transcript.Marker?
+    @State private var splitTarget: SplitTarget?
+    /// Several passages to one speaker: check circles on the rows and a bar
+    /// in place of playback while it lasts.
+    @State private var isSelecting = false
+    @State private var selectedTurns: Set<Int> = []
+    @State private var batchNewSpeaker = false
+    @State private var batchNewSpeakerName = ""
+    /// The window's undo manager, which the Edit menu drives.
+    @Environment(\.undoManager) private var undoManager
+
+    struct SplitTarget: Identifiable {
+        var id: Int { position }
+        var turn: Transcript.Turn
+        var position: Int
+        var words: [MergedWord]
+    }
     /// Why this transcript cannot be summarized, read once per load.
     @State private var summaryUnavailableReason: String?
     @Environment(JobLibraryModel.self) private var model
@@ -60,6 +78,8 @@ struct MacTranscriptView: View {
         /// Text to copy instead of the file's contents: the summary has no
         /// file of its own.
         var text: String?
+        /// What the saved file is named after the recording.
+        var kind: ExportNaming.Kind?
     }
 
     /// The screen's own content, in an expression of its own: the modifier
@@ -158,7 +178,9 @@ struct MacTranscriptView: View {
                 if transcript != nil, !query.trimmingCharacters(in: .whitespaces).isEmpty {
                     findBar(hits)
                 }
-                if transcript != nil, player.isLoaded {
+                if isSelecting, let transcript {
+                    selectionBar(transcript)
+                } else if transcript != nil, player.isLoaded {
                     MacPlaybackBar(markers: transcript?.markers ?? [],
                                    player: player, rate: $playbackRate)
                 }
@@ -174,6 +196,10 @@ struct MacTranscriptView: View {
         }
         .summaryEditor(isPresented: $showSummaryEditor, summary: screen.summary) { edited in
             correct { try screen.saveSummary(edited) }
+        }
+        .markerPresentations(screen: screen, player: player, showMarkers: $showMarkers,
+                             editingMarker: $editingMarker) { message in
+            failure = RetryableError(message: message, retry: nil)
         }
         // The summary arrives after the job: reload the text under the card
         // without touching playback.
@@ -230,7 +256,8 @@ struct MacTranscriptView: View {
                         }
                     } else if let document = ExportDocument(url: target.url, type: target.contentType) {
                         exportDocument = document
-                        exportName = target.url.lastPathComponent
+                        exportName = target.kind.map { ExportNaming.fileName(title: record?.title ?? "Recording", kind: $0) }
+                            ?? target.url.lastPathComponent
                         showExporter = true
                     } else {
                         failure = RetryableError(message: "\(target.label) could not be read from disk, so there is nothing to save.",
@@ -252,18 +279,31 @@ struct MacTranscriptView: View {
                                          retry: { showExporter = true })
             }
         }
+        .modifier(MacEditingPresentations(splitTarget: $splitTarget,
+                                          batchNewSpeaker: $batchNewSpeaker,
+                                          batchNewSpeakerName: $batchNewSpeakerName,
+                                          onSplit: { target, wordIndex in
+                                              correct { try screen.split(target.turn, at: target.position, beforeWord: wordIndex) }
+                                          },
+                                          onBatchNewSpeaker: { name in
+                                              reassignSelected { turns in try screen.assignToNewSpeaker(turns, named: name) }
+                                          }))
+        .onChange(of: undoManager == nil) { _, _ in screen.undoManager = undoManager }
         .onAppear {
             load()
+            screen.undoManager = undoManager
             MacLibrary.commands.findNext = { step(1, in: hits) }
             MacLibrary.commands.findPrevious = { step(-1, in: hits) }
             MacLibrary.commands.editCurrentTurn = editCurrentTurn
             MacLibrary.commands.hasCurrentTurn = false
             MacLibrary.commands.hasFindHits = false
+            MacLibrary.commands.selectPassages = beginSelecting
         }
         // The library reuses this view across selections, so a new job needs
         // a model of its own.
         .onChange(of: jobID) { _, newID in
             player.stop()
+            endSelecting()
             screen = TranscriptScreenModel(jobID: newID)
             load()
         }
@@ -281,7 +321,61 @@ struct MacTranscriptView: View {
             MacLibrary.commands.hasFindHits = false
             MacLibrary.commands.editCurrentTurn = nil
             MacLibrary.commands.hasCurrentTurn = false
+            MacLibrary.commands.selectPassages = nil
         }
+    }
+
+    // MARK: - Selecting passages
+
+    private func beginSelecting() {
+        selectedTurns = []
+        isSelecting = true
+    }
+
+    private func endSelecting() {
+        selectedTurns = []
+        isSelecting = false
+    }
+
+    private func toggleSelection(_ id: Int) {
+        if selectedTurns.contains(id) { selectedTurns.remove(id) } else { selectedTurns.insert(id) }
+    }
+
+    private func reassignSelected(_ change: @escaping ([Transcript.Turn]) throws -> Void) {
+        let turns = (transcript?.turns ?? []).filter { selectedTurns.contains($0.id) }
+        guard !turns.isEmpty else { return }
+        correct { try change(turns) }
+        endSelecting()
+    }
+
+    /// In place of the playback bar while selecting: how many, who to give
+    /// them to, and the way out. Escape is Done.
+    private func selectionBar(_ transcript: Transcript) -> some View {
+        HStack(spacing: 12) {
+            Text(selectedTurns.isEmpty ? "Select passages" : "\(selectedTurns.count) selected")
+                .font(.subheadline.weight(.medium))
+            Spacer()
+            Menu {
+                ForEach(transcript.speakers.keys.sorted(), id: \.self) { cluster in
+                    Button(transcript.displayName(forCluster: cluster)) {
+                        reassignSelected { turns in try screen.reassign(turns, to: cluster) }
+                    }
+                }
+                Divider()
+                Button("Someone else…") {
+                    batchNewSpeakerName = ""
+                    batchNewSpeaker = true
+                }
+            } label: {
+                Label("Reassign to…", systemImage: "person.crop.circle.badge.questionmark")
+            }
+            .fixedSize()
+            .disabled(selectedTurns.isEmpty)
+            Button("Done", action: endSelecting)
+                .keyboardShortcut(.cancelAction)
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(.bar)
     }
 
     @ViewBuilder
@@ -331,9 +425,10 @@ struct MacTranscriptView: View {
                         SuppressedSpans(spans: screen.suppressedSpans)
                         ForEach(Array(transcript.turns.enumerated()), id: \.element.id) { position, turn in
                             ForEach(screen.rowMarkers(beforeTurnAt: position)) { marker in
-                                MarkerRow(label: screen.rowMarkerLabel(marker, at: position)) {
-                                    player.seekAndPlay(to: marker.time)
-                                }
+                                MarkerRow(label: screen.rowMarkerLabel(marker, at: position),
+                                          onTap: { player.seekAndPlay(to: marker.time) },
+                                          onEdit: { editingMarker = marker },
+                                          onDelete: { correct { try screen.removeMarker(marker) } })
                             }
                             let isAuto = screen.isAutoLabeled(turn)
                             let isCurrent = position == currentTurn
@@ -363,6 +458,14 @@ struct MacTranscriptView: View {
                                             newSpeakerTarget = turn
                                         },
                                         originalSpeakerName: transcript.displayName(forCluster: turn.cluster),
+                                        onSplit: screen.canSplit(at: position) ? {
+                                            if let words = screen.splittableWords(at: position) {
+                                                splitTarget = SplitTarget(turn: turn, position: position, words: words)
+                                            }
+                                        } : nil,
+                                        onJoin: turn.splitFromPrevious == true ? { correct { try screen.join(turn) } } : nil,
+                                        selection: isSelecting ? selectedTurns.contains(turn.id) : nil,
+                                        onToggleSelect: { toggleSelection(turn.id) },
                                         onSeek: { player.seekAndPlay(to: turn.start) },
                                         onSeekToTime: { player.seekAndPlay(to: $0) })
                                 .id(turn.id)
@@ -370,9 +473,10 @@ struct MacTranscriptView: View {
                         // Flagged after the last turn began: drawn here, or they
                         // vanish, which on the Mac they did.
                         ForEach(screen.trailingRowMarkers) { marker in
-                            MarkerRow(label: screen.rowMarkerLabel(marker, at: nil)) {
-                                player.seekAndPlay(to: marker.time)
-                            }
+                            MarkerRow(label: screen.rowMarkerLabel(marker, at: nil),
+                                      onTap: { player.seekAndPlay(to: marker.time) },
+                                      onEdit: { editingMarker = marker },
+                                      onDelete: { correct { try screen.removeMarker(marker) } })
                         }
                     }
                     .padding()
@@ -447,11 +551,20 @@ struct MacTranscriptView: View {
                                              contentType: .plainText, toClipboard: true)
             }
             Divider()
-            Button("Markdown") { pendingExport = ExportTarget(label: "Markdown", url: files.transcriptMarkdown, contentType: .plainText) }
-            Button("Text") { pendingExport = ExportTarget(label: "Text", url: files.transcriptText, contentType: .plainText) }
-            Button("JSON (canonical)") { pendingExport = ExportTarget(label: "JSON", url: files.transcriptJSON, contentType: .json) }
+            Button("Markdown") { pendingExport = ExportTarget(label: "Markdown", url: files.transcriptMarkdown, contentType: .plainText, kind: .markdown) }
+            Button("Text") { pendingExport = ExportTarget(label: "Text", url: files.transcriptText, contentType: .plainText, kind: .text) }
+            Button("JSON (canonical)") { pendingExport = ExportTarget(label: "JSON", url: files.transcriptJSON, contentType: .json, kind: .json) }
             if let original = files.findOriginal() {
-                Button("Original audio") { pendingExport = ExportTarget(label: "Original audio", url: original, contentType: .audio) }
+                Button("Original audio") {
+                    pendingExport = ExportTarget(label: "Original audio", url: original, contentType: .audio,
+                                                 kind: .audio(fileExtension: original.pathExtension))
+                }
+            }
+            Divider()
+            // Not an export: the files stay where they are, in the app's
+            // own container, and nothing is copied.
+            Button("Show in Finder") {
+                NSWorkspace.shared.activateFileViewerSelecting([files.findOriginal() ?? files.root])
             }
         } label: {
             Label("Export", systemImage: "square.and.arrow.up")
@@ -496,6 +609,16 @@ struct MacTranscriptView: View {
                     Label("Summarize", systemImage: "sparkles")
                 }
             }
+            Button {
+                showMarkers = true
+            } label: {
+                Label(screen.markers.isEmpty ? "Markers & Notes…" : "Markers & Notes (\(screen.markers.count))…",
+                      systemImage: "flag")
+            }
+            Button(action: beginSelecting) {
+                Label("Select Passages", systemImage: "checkmark.circle")
+            }
+            .disabled(isSelecting)
             Button {
                 reidentifySpeakers()
             } label: {
@@ -650,6 +773,11 @@ private struct MacTurnView: View {
     var onNewSpeaker: (() -> Void)?
     /// What the diarizer called this turn, for the undo item's label.
     var originalSpeakerName: String?
+    var onSplit: (() -> Void)?
+    var onJoin: (() -> Void)?
+    /// Non-nil while selecting: whether this turn is picked.
+    var selection: Bool?
+    var onToggleSelect: (() -> Void)?
     let onSeek: () -> Void
     var onSeekToTime: ((TimeInterval) -> Void)?
 
@@ -686,6 +814,40 @@ private struct MacTurnView: View {
 
     var body: some View {
         let direction = BidiText.baseDirection(of: turn.text)
+        HStack(alignment: .top, spacing: 8) {
+            if let selection {
+                Image(systemName: selection ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(selection ? Color.accentColor : Color.secondary)
+                    .padding(.top, 10)
+                    .accessibilityHidden(true)
+            }
+            turnContent(direction: direction)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { if selection != nil { onToggleSelect?() } else { onSeek() } }
+        .contextMenu {
+            if let onEdit { Button("Edit Text…", action: onEdit) }
+            if let onRevert { Button("Revert to Original", action: onRevert) }
+            if let onSplit { Button("Split Passage…", action: onSplit) }
+            if let onJoin { Button("Join with Previous Passage", action: onJoin) }
+            Divider()
+            speakerMenuItems
+            Divider()
+            Button("Copy") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(turn.text, forType: .string)
+            }
+            Button("Copy with Timestamp") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString("[\(TranscriptClock.label(turn.start))] \(turn.speaker): \(turn.text)",
+                                               forType: .string)
+            }
+            Button("Play from Here", action: onSeek)
+        }
+    }
+
+    @ViewBuilder private func turnContent(direction: BidiText.Direction) -> some View {
         VStack(alignment: direction == .rtl ? .trailing : .leading, spacing: 4) {
             HStack(spacing: 8) {
                 Menu {
@@ -741,27 +903,39 @@ private struct MacTurnView: View {
                 .textSelection(.enabled)
         }
         .padding(8)
-        .background(isCurrent ? Color("LonghandHighlight").opacity(0.6) : Color.clear,
+        .background(isCurrent ? Color("LonghandHighlight").opacity(0.6)
+                    : selection == true ? Color.accentColor.opacity(0.1) : Color.clear,
                     in: RoundedRectangle(cornerRadius: 10))
-        .contentShape(Rectangle())
-        .onTapGesture(perform: onSeek)
-        .contextMenu {
-            if let onEdit { Button("Edit Text…", action: onEdit) }
-            if let onRevert { Button("Revert to Original", action: onRevert) }
-            Divider()
-            speakerMenuItems
-            Divider()
-            Button("Copy") {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(turn.text, forType: .string)
+    }
+}
+
+/// The split sheet and the batch "someone else" sheet, out of the body
+/// chain: three expressions is already what the type-checker allows it.
+private struct MacEditingPresentations: ViewModifier {
+    @Binding var splitTarget: MacTranscriptView.SplitTarget?
+    @Binding var batchNewSpeaker: Bool
+    @Binding var batchNewSpeakerName: String
+    let onSplit: (MacTranscriptView.SplitTarget, Int) -> Void
+    let onBatchNewSpeaker: (String) -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(item: $splitTarget) { target in
+                SplitTurnSheet(speaker: target.turn.speaker, words: target.words) { wordIndex in
+                    onSplit(target, wordIndex)
+                    splitTarget = nil
+                } onCancel: {
+                    splitTarget = nil
+                }
             }
-            Button("Copy with Timestamp") {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString("[\(TranscriptClock.label(turn.start))] \(turn.speaker): \(turn.text)",
-                                               forType: .string)
+            .sheet(isPresented: $batchNewSpeaker) {
+                MacNewSpeakerSheet(name: $batchNewSpeakerName) {
+                    onBatchNewSpeaker(batchNewSpeakerName)
+                    batchNewSpeaker = false
+                } onCancel: {
+                    batchNewSpeaker = false
+                }
             }
-            Button("Play from Here", action: onSeek)
-        }
     }
 }
 

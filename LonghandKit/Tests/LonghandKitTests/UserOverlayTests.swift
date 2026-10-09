@@ -320,6 +320,47 @@ private func fixture(_ turns: [Transcript.Turn],
         #expect(result.markers?.map(\.label) == [nil, nil, "Budget agreed"])
     }
 
+    @Test func markersCanBeRelabelledMovedAndRemovedById() {
+        var overlay = UserOverlay()
+        let note = Transcript.Marker(time: 30, label: "Budget")
+        let flag = Transcript.Marker(time: 5)
+        overlay.addMarkers([note, flag])
+
+        let relabelled = overlay.updateMarker(id: flag.id, label: .some("  Decision  "))
+        let moved = overlay.updateMarker(id: note.id, time: 2)
+        #expect(relabelled && moved)
+        #expect(overlay.markers.map(\.time) == [2, 5], "moving re-sorts")
+        #expect(overlay.markers.map(\.label) == ["Budget", "Decision"])
+
+        // A blank label turns a note back into a flag; nil leaves it alone.
+        _ = overlay.updateMarker(id: flag.id, label: .some("  "))
+        #expect(overlay.markers[1].label == nil)
+        _ = overlay.updateMarker(id: note.id, label: nil, time: nil)
+        #expect(overlay.markers[0].label == "Budget")
+
+        let removed = overlay.removeMarker(id: note.id)
+        let removedAgain = overlay.removeMarker(id: note.id)
+        let unknown = overlay.updateMarker(id: UUID(), label: .some("x"))
+        #expect(removed && !removedAgain && !unknown)
+        #expect(overlay.markers.count == 1)
+    }
+
+    /// A rerender starts from the previous transcript, which carries the
+    /// markers of the overlay before the edit. Deleting the last one must
+    /// clear them, or the deleted marker lives on in transcript.json.
+    @Test func removingTheLastMarkerClearsTheTranscriptsMarkers() {
+        var overlay = UserOverlay()
+        let marker = Transcript.Marker(time: 3, label: "gone")
+        overlay.addMarkers([marker])
+        var transcript = fixture([turn(0, "SPEAKER_00", 0, 5, "text")])
+        transcript = overlay.apply(to: transcript)
+        #expect(transcript.markers?.count == 1)
+
+        _ = overlay.removeMarker(id: marker.id)
+        let rerendered = overlay.apply(to: transcript)
+        #expect(rerendered.markers == nil)
+    }
+
     @Test func anEmptyOverlayLeavesTheTranscriptAlone() {
         let base = fixture([turn(0, "SPEAKER_00", 0, 5, "unchanged", speaker: "Speaker 1")])
         let overlay = UserOverlay()
@@ -539,5 +580,89 @@ private func fixture(_ turns: [Transcript.Turn],
         #expect(text.contains("first line\nsecond line"),
                 "the turn's own line break is preserved verbatim")
         #expect(text.hasPrefix("[00:00] Speaker 1: "))
+    }
+}
+
+/// Cutting a turn in two at a word, and the halves staying addressable.
+@Suite struct TurnSplitTests {
+
+    private func base() -> Transcript {
+        fixture([
+            turn(0, "SPEAKER_00", 0, 6, "we need this by wednesday fine"),
+            turn(1, "SPEAKER_01", 7, 9, "ok"),
+        ])
+    }
+
+    @Test func aSplitMakesTwoTurnsAtTheWord() {
+        var overlay = UserOverlay()
+        let original = base().turns[0]
+        let didSplit = overlay.split(turn: original, atWordIndex: 5, atTime: 5.0)
+        #expect(didSplit)
+        let result = overlay.apply(to: base())
+        #expect(result.turns.count == 3)
+        #expect(result.turns.map(\.id) == [0, 1, 2], "ids are positional and renumbered")
+        #expect(result.turns[0].text == "we need this by wednesday")
+        #expect(result.turns[0].end == 5.0)
+        #expect(result.turns[1].text == "fine")
+        #expect(result.turns[1].start == 5.0 && result.turns[1].end == 6)
+        #expect(result.turns[1].splitFromPrevious == true)
+        #expect(result.turns[0].splitFromPrevious == nil)
+        #expect(result.turns[1].cluster == "SPEAKER_00")
+    }
+
+    @Test func theEndsAndAStrangerAreRefused() {
+        var overlay = UserOverlay()
+        let original = base().turns[0]
+        let atStart = overlay.split(turn: original, atWordIndex: 0, atTime: 0)
+        let atEnd = overlay.split(turn: original, atWordIndex: 6, atTime: 6)
+        let badTime = overlay.split(turn: original, atWordIndex: 2, atTime: 0)
+        #expect(!atStart && !atEnd && !badTime)
+        #expect(overlay.turnSplits.isEmpty)
+        // A split whose turn is gone after a re-merge is skipped, not fatal.
+        overlay.turnSplits.append(.init(start: 40, cluster: "SPEAKER_00", wordIndex: 1, atTime: 41))
+        #expect(overlay.apply(to: base()).turns.count == 2)
+    }
+
+    @Test func theSecondHalfCanBeReassignedEditedAndSplitAgain() {
+        var overlay = UserOverlay()
+        overlay.split(turn: base().turns[0], atWordIndex: 4, atTime: 4.0)
+        var transcript = overlay.apply(to: base())
+        let secondHalf = transcript.turns[1]          // "wednesday fine", 4...6
+        overlay.assign(turn: secondHalf, toCluster: "SPEAKER_01")
+        overlay.setText("Wednesday, fine.", forTurn: secondHalf)
+        transcript = overlay.apply(to: base())
+        #expect(transcript.turns[1].assignedCluster == "SPEAKER_01")
+        #expect(transcript.turns[1].text == "Wednesday, fine.")
+        #expect(transcript.turns[0].text == "we need this by")
+
+        // Splitting the second half again counts words from the original.
+        var again = UserOverlay()
+        again.split(turn: base().turns[0], atWordIndex: 4, atTime: 4.0)
+        let half = again.apply(to: base()).turns[1]
+        let splitAgain = again.split(turn: half, atWordIndex: 1, atTime: 5.0)
+        #expect(splitAgain)
+        #expect(again.turnSplits.map(\.wordIndex) == [4, 5])
+        let thrice = again.apply(to: base())
+        #expect(thrice.turns.map(\.text) == ["we need this by", "wednesday", "fine", "ok"])
+    }
+
+    @Test func joiningDropsTheSplitThatMadeTheTurn() {
+        var overlay = UserOverlay()
+        overlay.split(turn: base().turns[0], atWordIndex: 2, atTime: 2.0)
+        let second = overlay.apply(to: base()).turns[1]
+        let joined = overlay.join(turn: second)
+        let joinedAgain = overlay.join(turn: second)
+        #expect(joined && !joinedAgain)
+        #expect(overlay.turnSplits.isEmpty)
+        #expect(overlay.apply(to: base()).turns.count == 2)
+    }
+
+    @Test func anOverlayWrittenBeforeSplitsExistedStillDecodes() throws {
+        let legacy = """
+        {"version":1,"speakerNames":{},"turnEdits":[],"speakerRanges":[],"markers":[]}
+        """
+        let overlay = try JSONDecoder().decode(UserOverlay.self, from: Data(legacy.utf8))
+        #expect(overlay.turnSplits.isEmpty)
+        #expect(overlay.isEmpty)
     }
 }

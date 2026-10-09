@@ -650,9 +650,61 @@ public nonisolated enum JobPipeline {
         }
     }
 
+    /// Cuts a turn in two at a word (§ addition). The halves are ordinary
+    /// turns from then on: reassignable, editable, splittable again.
+    public static func splitTurn(files: JobFiles, turn: Transcript.Turn,
+                                 atWordIndex wordIndex: Int, atTime: TimeInterval) throws {
+        try updateOverlay(files: files) { overlay in
+            overlay.split(turn: turn, atWordIndex: wordIndex, atTime: atTime)
+        }
+    }
+
+    /// Rejoins a turn with the one before it.
+    public static func joinTurn(files: JobFiles, turn: Transcript.Turn) throws {
+        try updateOverlay(files: files) { overlay in
+            overlay.join(turn: turn)
+        }
+    }
+
+    /// Reattributes several passages in one write.
+    public static func assignTurns(files: JobFiles, turns: [Transcript.Turn],
+                                   toCluster cluster: String, displayName: String? = nil) throws {
+        try updateOverlay(files: files) { overlay in
+            for turn in turns {
+                overlay.assign(turn: turn, toCluster: cluster, displayName: displayName)
+            }
+        }
+    }
+
+    /// Writes an overlay back as it was, for undo. Through `rerender`, like
+    /// every other overlay change.
+    public static func restoreOverlay(files: JobFiles, _ overlay: UserOverlay?) throws {
+        if let overlay {
+            try AtomicFile.writeJSON(overlay, to: files.overlay)
+        } else {
+            try? FileManager.default.removeItem(at: files.overlay)
+        }
+        try rerender(files: files)
+    }
+
     public static func addMarker(files: JobFiles, at time: TimeInterval, label: String? = nil) throws {
         try updateOverlay(files: files) { overlay in
             overlay.addMarker(at: time, label: label)
+        }
+    }
+
+    /// Relabels or moves one marker. `label` as `.some(nil)` or a blank
+    /// string makes it a plain flag; `nil` leaves the label alone.
+    public static func updateMarker(files: JobFiles, id: UUID,
+                                    label: String?? = nil, time: TimeInterval? = nil) throws {
+        try updateOverlay(files: files) { overlay in
+            overlay.updateMarker(id: id, label: label, time: time)
+        }
+    }
+
+    public static func removeMarker(files: JobFiles, id: UUID) throws {
+        try updateOverlay(files: files) { overlay in
+            overlay.removeMarker(id: id)
         }
     }
 

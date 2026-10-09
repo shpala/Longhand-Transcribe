@@ -45,6 +45,10 @@ struct RecordSheet: View {
     @State private var liveActivity = RecordingActivityController()
     /// 54pt at the default text size, growing with Dynamic Type.
     @ScaledMetric(relativeTo: .largeTitle) private var timerFontSize: CGFloat = 54
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// A continuously redrawn waveform is motion; with Reduce Motion on, the
+    /// level is a bar that moves only as the level does.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let cream = Color("LonghandCream")
 
@@ -84,15 +88,21 @@ struct RecordSheet: View {
                             .accessibilityLabel("Calendar event: \(event.title)")
                             .accessibilityIdentifier("record-calendar-event")
                     }
-                    WaveformMeter(recorder: recorder)
-                        .frame(height: 64)
-                        .padding(.horizontal, 32)
-                        .opacity(recorder.state == .paused ? 0.35 : 1)
+                    Group {
+                        if reduceMotion {
+                            LevelBar(recorder: recorder)
+                        } else {
+                            WaveformMeter(recorder: recorder)
+                        }
+                    }
+                    .frame(height: 64)
+                    .padding(.horizontal, 32)
+                    .opacity(recorder.state == .paused ? 0.35 : 1)
                     VStack(spacing: 4) {
                         Label(statusText, systemImage: statusIcon)
                             .font(.subheadline)
                             .foregroundStyle(statusColor)
-                            .symbolEffect(.pulse, isActive: recorder.state == .recording)
+                            .symbolEffect(.pulse, isActive: recorder.state == .recording && !reduceMotion)
                         // Which microphone: a take through the laptop's mic
                         // when the headset was meant is better found out now.
                         if let input = recorder.inputName,
@@ -248,8 +258,21 @@ struct RecordSheet: View {
         TakeDetails(location: capturedLocation, markers: markers, calendarEvent: calendarEvent)
     }
 
+    /// Three labelled buttons side by side at the default size; stacked at
+    /// the accessibility sizes, where "Stop & Save" alone is wider than the
+    /// row.
     @ViewBuilder private var controls: some View {
-        HStack(spacing: 32) {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 20) { controlButtons }
+                .padding(.bottom, 12)
+        } else {
+            HStack(spacing: 32) { controlButtons }
+                .padding(.bottom, 12)
+        }
+    }
+
+    @ViewBuilder private var controlButtons: some View {
+        Group {
             switch recorder.state {
             case .recording:
                 Button {
@@ -289,7 +312,6 @@ struct RecordSheet: View {
                 retryButton
             }
         }
-        .padding(.bottom, 12)
     }
 
     private var retryButton: some View {
@@ -379,6 +401,10 @@ struct RecordSheet: View {
         Button(action: stopAndSaveWithOptions) {
             Label("Stop & Save with Options…", systemImage: "slider.horizontal.3")
                 .font(.caption.weight(.medium))
+                // Wraps at the accessibility sizes rather than truncating
+                // to "Stop & Save wit…".
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.vertical, 6)
                 .contentShape(Rectangle())
         }
@@ -477,6 +503,27 @@ private struct WaveformMeter: View {
             graphics.fill(path, with: .color(Color("LonghandCream")))
         }
         .shadow(color: Color("LonghandCream").opacity(0.45), radius: 6)
+        .accessibilityLabel("Microphone level")
+        .accessibilityValue(recorder.levelBand)
+    }
+}
+
+/// The level as one bar, for Reduce Motion: the same reading as the wave,
+/// without the stroke redrawing twelve times a second.
+private struct LevelBar: View {
+    let recorder: RecorderService
+
+    var body: some View {
+        let level = recorder.levelHistory.last ?? 0
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color("LonghandCream").opacity(0.15))
+                Capsule().fill(Color("LonghandCream"))
+                    .frame(width: max(8, geometry.size.width * max(0.04, level)))
+            }
+            .frame(height: 12)
+            .frame(maxHeight: .infinity)
+        }
         .accessibilityLabel("Microphone level")
         .accessibilityValue(recorder.levelBand)
     }

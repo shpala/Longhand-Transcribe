@@ -37,6 +37,10 @@ struct MacOnboardingView: View {
         }
         .padding(32)
         .frame(width: 520)
+        // Escape would close the sheet without reaching the microphone
+        // prompt, which is the one thing it exists to lead to. Continue is
+        // the way through, and it is never disabled for long.
+        .interactiveDismissDisabled()
     }
 
     private func bullet(_ icon: String, _ text: String) -> some View {

@@ -99,14 +99,20 @@ public struct TurnBodyText: View {
     }
 }
 
-/// A marker no turn could draw among its words, shown as its own row.
+/// A marker no turn could draw among its words, shown as its own row. Tap
+/// plays from it; the context menu (and the VoiceOver actions) edit it.
 public struct MarkerRow: View {
     let label: String
     let onTap: () -> Void
+    var onEdit: (() -> Void)?
+    var onDelete: (() -> Void)?
 
-    public init(label: String, onTap: @escaping () -> Void) {
+    public init(label: String, onTap: @escaping () -> Void,
+                onEdit: (() -> Void)? = nil, onDelete: (() -> Void)? = nil) {
         self.label = label
         self.onTap = onTap
+        self.onEdit = onEdit
+        self.onDelete = onDelete
     }
 
     public var body: some View {
@@ -115,9 +121,44 @@ public struct MarkerRow: View {
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.orange)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Marker: \(label)")
+        .accessibilityHint("Plays from here")
         .accessibilityIdentifier("marker")
+        .contextMenu {
+            Button(action: onTap) { Label("Play from Here", systemImage: "play.circle") }
+            if let onEdit {
+                Button(action: onEdit) { Label("Edit Note…", systemImage: "pencil") }
+            }
+            if let onDelete {
+                Divider()
+                Button(role: .destructive, action: onDelete) { Label("Delete Marker", systemImage: "trash") }
+            }
+        }
+        .modifier(MarkerActions(onEdit: onEdit, onDelete: onDelete))
+    }
+}
+
+/// VoiceOver actions for a marker row, added only when the closures exist:
+/// `accessibilityAction` has no optional form.
+private struct MarkerActions: ViewModifier {
+    var onEdit: (() -> Void)?
+    var onDelete: (() -> Void)?
+
+    func body(content: Content) -> some View {
+        if let onEdit, let onDelete {
+            content
+                .accessibilityAction(named: "Edit note", onEdit)
+                .accessibilityAction(named: "Delete marker", onDelete)
+        } else if let onEdit {
+            content.accessibilityAction(named: "Edit note", onEdit)
+        } else if let onDelete {
+            content.accessibilityAction(named: "Delete marker", onDelete)
+        } else {
+            content
+        }
     }
 }
 

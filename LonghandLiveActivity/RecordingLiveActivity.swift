@@ -8,6 +8,7 @@ struct LonghandLiveActivityBundle: WidgetBundle {
     var body: some Widget {
         RecordingLiveActivity()
         RecordControl()
+        RecentRecordingsWidget()
     }
 }
 
@@ -178,7 +179,7 @@ private extension RecordingActivityAttributes.ContentState.Phase {
 
 /// The app's asset catalog is not visible from an extension, so the two brand
 /// colors are spelled out here.
-private enum Brand {
+enum Brand {
     static let indigo = Color(red: 0x1B / 255, green: 0x18 / 255, blue: 0x46 / 255)
     static let cream = Color(red: 0xF7 / 255, green: 0xF2 / 255, blue: 0xE3 / 255)
 }

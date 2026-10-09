@@ -104,6 +104,15 @@ speaker names confirmed and a few turns corrected, settles both at once.
 | Per-turn speaker reassignment (addition) | `JobPipeline.assignTurn`, `Turn.assignedCluster`, speaker chip menu in both shells | one passage moves without touching the diarizer's claim, so §9.2 enrollment eligibility and centroid lookup are unaffected. The chip is a scope chooser: "this passage is someone else" versus "rename, N passages", the count naming a reach the chip cannot otherwise show |
 | User-defined speakers (addition) | `UserOverlay.mintSpeakerCluster()` / `isUserDefined`, `USER_<hex>` keys | the diarizer folding a third person into someone else's cluster leaves nothing to reassign *to*; "Someone else…" mints a cluster the overlay seeds into the speakers table. No centroid exists for it, so `canEnroll` refuses enrollment without a special case: an invented speaker is a label, never a voiceprint. Undoing the last passage prunes the orphaned name |
 | Markers (addition) | flag button on all three record surfaces → `ImportService(markers:)` → overlay → transcript + Markdown | the recorders' clocks exclude paused time (iOS counts frames written; the Mac and watch use `AVAudioRecorder.currentTime`), so marker times share the transcript's clock |
+| Split passage / join (addition) | `UserOverlay.TurnSplit`, `split`/`join`, `applySplits`; `JobPipeline.splitTurn`/`joinTurn`; `SplitTurnSheet` | a turn cut at a word, anchored like an edit; halves are ordinary turns; see "Splitting passages, undo" below |
+| Undo (addition) | `TranscriptScreenModel.mutate`/`undo`/`redo`, `JobPipeline.restoreOverlay` | overlay snapshots on the window's `UndoManager`: shake, Command-Z, Edit menu |
+| Batch reassignment (addition) | `JobPipeline.assignTurns`, select mode in `TranscriptView` and `MacTranscriptView` | several passages to one speaker as one undo step; both shells |
+| Library edit mode (addition) | `LibraryView` select mode, `JobLibraryModel.delete(jobIDs:)`/`diskUsage(of:)`; `Set<UUID>` sidebar selection on the Mac | multi-select delete with per-recording size; the Mac uses the list's own Command-click and Select All |
+| Spotlight (addition) | `LonghandEngines/Sources/LonghandEngines/SpotlightIndex.swift`, `JobLibraryModel.syncSearchIndex`, `TranscriptScreenModel.mutate` | title, date and the transcript's words in Core Spotlight; nothing from §14.1; see "Search, a widget, windows" below |
+| Home Screen widget (addition) | `LonghandLiveActivity/RecordingsWidget.swift`, `WidgetSnapshot.swift`, `Longhand/WidgetBridge.swift` | Record at every size, the latest recordings at medium and large, through an App Group snapshot of titles and dates only |
+| iPad windows (addition) | `WindowGroup(for: UUID.self)` in `LonghandApp`, `TranscriptWindow`, focused scene values in `AppCommands.swift` | "Open in New Window" on a library row; the keyboard commands follow the window |
+| Marker editing (addition) | `UserOverlay.updateMarker`/`removeMarker`, `JobPipeline.updateMarker`/`removeMarker`, `MarkersSheet` + `MarkerRow` menus in `LonghandEngines` | relabel, move, delete and add-at-playhead on both shells; see "Markers after the fact" below |
+| Export file names (addition) | `LonghandKit/Sources/LonghandKit/Export/ExportNaming.swift`, `LonghandEngines/Sources/LonghandEngines/ExportStaging.swift` | the shared copy is "Title transcript.md" rather than `transcript.md`; the Mac save panel defaults to the same name |
 | Notes while recording (addition) | text field on the iOS and Mac record sheets → labelled `Transcript.Marker` → `TakeSidecar` → overlay | a note is a marker with a label, drawn among the words it was typed over; see "Notes while recording, summaries, calendar titles" below |
 | Summaries (addition) | `LonghandKit/Sources/LonghandKit/Summary/TranscriptSummary.swift` (+`SummaryChunker`), `LonghandEngines/Sources/LonghandEngines/TranscriptSummarizer.swift`, `SummaryViews.swift`, `summary.json` | Apple's on-device model through the Foundation Models framework; chunked over the model's window; cached beside the transcript, led into the Markdown export, labelled stale after a correction, deleted by a re-transcribe; languages the model does not speak are refused with a reason |
 | Calendar titles (addition) | `LonghandEngines/Sources/LonghandEngines/CalendarContext.swift`, `ImportMetadata.calendarEvent`, rename sheets | off by default; the event in progress names the take and its attendees are offered when naming a speaker; metadata.json only, never exported; iOS only |
@@ -1452,3 +1461,211 @@ resumes from.
 
 Also recorded here: the privacy page gained Calendar, Summaries and notes
 entries, with a new effective date.
+
+## Markers after the fact, exports named for the recording, and an accessibility pass (9 Oct 2026)
+
+**Markers and notes are editable.** They were write-once from the record
+sheet, which notes made worse: a typo in a note was there for good. The
+overlay gained `updateMarker(id:label:time:)` and `removeMarker(id:)`, keyed
+on the id the overlay minted (two flags can share a second, so time is not
+an identity), and `JobPipeline.updateMarker`/`removeMarker` go through
+`updateOverlay` like every other correction, so the Markdown follows. On the
+transcript, a marker row's context menu (and its VoiceOver actions) edit or
+delete it; markers drawn inline among the words have no row, so the actions
+menu's "Markers & Notes" opens `MarkersSheet` (LonghandEngines, both
+shells): every marker in time order, tap to play from it, swipe or menu to
+edit, move to the playhead, or delete, and a toolbar button that adds a note
+at the playhead, which is the first time a note can be made after recording.
+The two presentations ride one `markerPresentations` modifier, because both
+transcript screens' modifier chains are at the type-checker's limit; the Mac
+body had to be split into three expressions in the previous batch.
+
+The UI test for deleting caught a bug the model tests had not: deleting the
+last marker left it on screen and in `transcript.json`. `applyReportingStale`
+replaced the transcript's markers only when the overlay had some, so an
+emptied overlay kept what the previous transcript carried. The overlay is
+the only source of markers, so the assignment is now unconditional (nil
+when empty). Build 8 went to TestFlight with the gated version and was
+followed by build 9 with the fix.
+
+**Exports are named for the recording.** The job folder keeps
+`transcript.md`, `transcript.txt` and `transcript.json`, and the share sheet
+showed those names, so three recordings sent to one person all arrived as
+`transcript.md`. `ExportNaming.fileName(title:kind:)` (LonghandKit, tested)
+makes "Weekly sync transcript.md", with path separators and the characters
+Windows and SMB refuse replaced, hidden-file dots stripped and the stem
+capped at 80 characters; the original audio keeps its extension. On iOS
+`ExportStaging` copies the file under that name into a per-share temp folder
+before the share sheet gets it, sweeping earlier copies; on the Mac the save
+panel's default name is the same string. The §14.1 confirmation is
+unchanged: the copy is made after it.
+
+**Accessibility.** Speaker chips keep the name as their label (the UI tests
+query it) and gain the auto match as a value; the playback scrubber has a
+label and a position value; the speed menu reads its value; marker rows read
+"Marker: label" with a play hint and carry edit and delete as custom
+actions; the markers sheet rows the same. The record sheet stacks its three
+controls vertically at the accessibility text sizes, where "Stop & Save"
+alone is wider than the row, and under Reduce Motion replaces the
+twelve-times-a-second waveform with a level bar and stops the status glyph
+pulsing. `LargeTypeUITests` opens the sheet at AccessibilityXXXL and checks
+all three controls are hittable; `MarkerEditingUITests` adds, relabels and
+deletes a note through the sheet (needs `seed-sim`).
+
+## Splitting passages, undo, and a library edit mode (9 Oct 2026)
+
+**Split a passage at a word.** The diarizer joins two people into one turn
+often enough that reassigning a whole passage was the wrong tool. A turn's
+context menu offers "Split Passage…" when its words are known and unedited:
+`TranscriptScreenModel.splittableWords` requires the merged words for the
+turn and that their join still equals the turn's text, so an edited turn
+(whose words no longer describe it) and an older job (no word timings) are
+not offered the cut. `SplitTurnSheet` (LonghandEngines, both shells) shows
+the words as one `Text` with a link per word, so bidi text keeps its order
+and a tap picks the first word of the new passage; a preview shows the two
+halves before Split. The overlay records a `TurnSplit` anchored like an edit
+(start + cluster), with the word index into the turn's text and the time
+that word starts. `applyReportingStale` applies splits first, so the halves
+are the turns everything else anchors on: the second half starts at the
+word's time, and a reassignment by midpoint or an edit by start finds it. A
+second cut of a half is recorded on the original's anchor at the combined
+index, and splits of one turn are applied from the later word to the
+earlier so each index still counts from the original start. A split that no
+longer fits after a re-merge is skipped. Turns a split produced carry
+`splitFromPrevious`, which is what offers "Join with Previous Passage"; the
+join drops the split. The overlay now decodes every list as optional, since
+an overlay written before splits existed must keep decoding or every export
+of that job fails.
+
+**Undo.** Every correction goes through `TranscriptScreenModel.mutate`,
+which snapshots `overlay.json` before the change and registers the snapshot
+with the window's `UndoManager`; undoing writes it back through `rerender`,
+so the exports follow, and registers the current state as the redo. The
+view hands over the environment's undo manager, so shake on iPhone,
+Command-Z on iPad and the Edit menu on the Mac all work with no code of
+their own, and the iOS actions menu names the step ("Undo Split Passage").
+Summaries are not in the stack: they are not overlay content, and
+regenerating one already asks before replacing an edit.
+
+**Several passages at once.** "Select Passages" in the actions menu puts a
+check circle on every turn; the playback bar gives way to "N selected",
+"Reassign to…" (every speaker, or "Someone else…") and Done.
+`JobPipeline.assignTurns` writes them in one overlay update, so they are one
+undo step named "Reassign N Passages". iOS only in this batch; the Mac has
+split, join and undo, and selection there is a later item.
+
+**Library edit mode.** "Select Recordings" in the Add menu puts the same
+check circles on the rows and shows each recording's size on disk, read
+once on entry (a directory walk per row would otherwise run per render);
+the bar says how many and how much they free, and Delete goes through one
+confirmation to `JobLibraryModel.delete(jobIDs:)`, which stops a running
+job before its folder goes. `PassageEditingUITests` and
+`LibrarySelectionUITests` cover both (needs `seed-sim`).
+
+## Search, a widget, windows on iPad, and the Mac catching up (9 Oct 2026)
+
+**Spotlight.** `SpotlightIndex` (LonghandEngines, both shells) puts each
+recording in Core Spotlight: the title, the date, the length, and the
+transcript's words with their speaker names, read from `transcript.json` so
+corrections and renames are in. The voice profiles, the location, the
+calendar event and the summary are not: the first three never cross a
+boundary (§14.1), and the summary is a model's guess that would read as fact
+in a results list. The index is the device's own; the Settings toggle ("Find
+transcripts in Spotlight", on by default) clears it with one call when
+turned off. `JobLibraryModel.refresh` keeps a fingerprint of title and state
+per job and indexes only what changed, since a refresh runs after every
+state change and reindexing the whole library would read every transcript
+each time; a correction reindexes its job from `TranscriptScreenModel.mutate`
+and from the undo closure. Items are given no expiry: Core Spotlight's
+default is a month, after which a recording would quietly leave search while
+still in the library. The package tests never index: `hostIsApp` checks the
+bundle identifier, so a fixture cannot land in the Mac's Spotlight from a
+test host, and a test asserts that. Tapping a result arrives as an
+`NSUserActivity` of `CSSearchableItemActionType`: `LibraryView` handles it
+with `onContinueUserActivity`, the Mac in the app delegate's
+`application(_:continue:)`, both through `AppRequests.openRequested`, which
+on the Mac reopens a closed library window first.
+
+Verified at the unit level (what an entry holds) and in the app's log,
+which records each index call. The simulator cannot verify the search
+itself: its Core Spotlight index reports itself available and then refuses
+every item with `CSIndexErrorDomain -1000`, so `SpotlightUITests` skips
+there and is for a device, where it looks the seeded title up in the Home
+Screen's search and expects the result to open the transcript. Run on the
+owner's iPhone 16 Pro Max on 9 Oct 2026: the recording was Spotlight's Top
+Hit, shown with its duration, and tapping it opened the transcript. On an
+empty phone library the test records a six-second take of its own and
+deletes it at the end.
+
+**A Home Screen widget.** `RecentRecordingsWidget` in the Live Activity
+extension: a Record tile at the small size and on the Lock Screen
+(`accessoryCircular`), and at medium and large a header with Record and the
+latest two or six recordings. An extension cannot read the app's Documents,
+so the app mirrors the library into an App Group container
+(`group.com.shpala.Longhand`) as `Library/Application Support/widget-snapshot.json`:
+titles, dates, states and durations, nothing else. Verified on the owner's
+iPhone on 9 Oct 2026 by pulling the group container after a launch: the
+file listed the library's two recordings with their durations. `WidgetBridge.publish` writes it from
+`JobLibraryModel.onLibraryChanged` and reloads the widget's timeline only
+when something it shows has changed, because a refresh runs on every
+progress tick and a reload per tick is a reload storm. Taps are links with
+the app's new URL scheme: `longhand://record` opens the app recording,
+`longhand://open/<id>` opens a transcript; `LibraryView.onOpenURL` reads them
+beside the files other apps share in. The timeline policy is `.never`; the
+app's reload is the only refresh, and the relative dates keep themselves
+current. The App Group is a new entitlement on the app and the extension
+(`Longhand.entitlements`, `LonghandLiveActivity.entitlements`). Automatic
+signing could not register it: Xcode has no Apple ID on this Mac, and
+`xcodebuild` with the App Store Connect key refuses that one step. The
+capability was enabled on both App IDs through the API, the group itself
+was registered and attached in the developer portal by hand, and the keyed
+build then regenerated the profiles (the run skill has the procedure).
+
+**Windows on iPad.** `UIApplicationSupportsMultipleScenes` is on and a second
+`WindowGroup(for: UUID.self)` shows one transcript (`TranscriptWindow`, over
+the same library model, with a placeholder if the recording is deleted
+under it). A library row's context menu offers "Open in New Window" where
+`supportsMultipleWindows` is true, which is iPad only. Two consequences had
+to be handled. The keyboard commands were a shared object of closures that
+whichever view appeared last owned and any view closing cleared; they are
+focused scene values now (`LibraryActions`, `TranscriptActions`), so ⌘R and
+⌘P reach the window the keyboard is in. And the record sheet is a single
+microphone tap: every library window observes `AppRequests`, so the handler
+reads the live flag rather than the value it was notified with and only the
+first window acts, and a Record button in a second window while a take runs
+in the first explains instead of opening a second sheet. `MultiWindowUITests`
+runs on an iPad simulator (`LONGHAND_SIM_ID`) and skips on an iPhone.
+
+**The Mac catches up.** The sidebar selection is a `Set<UUID>`, so
+Command-click, Shift-click and Select All work as they do in every Mac list;
+the detail shows the transcript for exactly one, and for several a summary
+with their size on disk and one Delete, which the Edit menu's item and a
+row's "Delete N Recordings…" also reach. The transcript has "Select
+Passages" (actions menu, Edit menu, ⇧⌘E) with the same selection bar and
+batch reassignment as iOS. "Show in Finder" on a row and in the Export menu
+reveals the original audio, or the folder when it is gone; it copies
+nothing and is not an export. New Recording and Import work with the
+library window closed: the view's own target is used when it is on screen,
+and otherwise the request goes the way Siri's does, reopening the window
+first (Import through `MacCommandTargets.importRequested`, picked up on
+appear with the same settle delay as a Siri request). The welcome sheet no
+longer closes on Escape, since its one job is to lead to the microphone
+prompt. File > Open Recent lists the ten newest recordings and opens one
+through `AppRequests.openRequested`, so it too works with the window
+closed; the app delegate refreshes the library model at launch so the menu
+is filled before any window has appeared. Calendar titles work on the Mac: the sandbox needed
+`com.apple.security.personal-information.calendars` plus the usage
+description, `MacRecordSheet` reads the event beside the location and shows
+it on the sheet, and `TakeDetails` carries it with the markers and the fix
+through both save paths. The Settings window gained the calendar and
+Spotlight toggles.
+
+**A Mac smoke test.** The Mac shell has no XCUITest target, so
+`driver.sh mac-smoke` builds, seeds the committed fixture into the sandbox
+container (`mac-seed`), launches, and drives the accessibility tree through
+System Events (`mac-smoke.applescript`): the seeded row is listed, clicking
+it shows a speaker chip, the File, Edit and Window menus carry their verbs,
+Command-W closes the window with New Recording and Import still enabled,
+and Window > Longhand Library brings it back. It needs the display awake
+and the screen unlocked: a locked screen gives the app no windows at all,
+which reads as the app failing to open one.

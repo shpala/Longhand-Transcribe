@@ -32,6 +32,10 @@ enum AppLibrary {
             guard let job = model.job(jobID) else { return }
             WatchLink.shared.pushProgress(jobID: jobID, title: job.title, progress: progress)
         }
+        // The Home Screen widget reads a mirror of the library, kept here for
+        // the same reason the watch push is: the model knows nothing about
+        // either.
+        model.onLibraryChanged = { jobs in WidgetBridge.publish(jobs) }
     }
 }
 

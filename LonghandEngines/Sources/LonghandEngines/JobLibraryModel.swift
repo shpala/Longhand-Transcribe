@@ -108,6 +108,9 @@ public final class JobLibraryModel {
     /// So a companion device can follow a job rather than hearing only about
     /// its start and finish.
     public var onProgress: ((UUID, PipelineProgress) -> Void)?
+    /// The whole list after every refresh, for a shell that mirrors it
+    /// somewhere the model cannot see (the iOS widget's snapshot).
+    public var onLibraryChanged: (([JobRecord]) -> Void)?
 
     private var engines: JobPipeline.Engines?
     /// What the cached engines were built with: a Settings change has to
@@ -175,6 +178,38 @@ public final class JobLibraryModel {
     public func refresh() {
         jobs = JobStore.allJobs().map(\.record)
         onRefresh(jobs.first)
+        onLibraryChanged?(jobs)
+        syncSearchIndex()
+    }
+
+    /// What the search index has seen of each job: a title or state change
+    /// means a new entry, and a job gone from the list is removed. Keyed here
+    /// rather than reindexing everything on every refresh, which would read
+    /// every transcript in the library each time a job moved.
+    private var indexedFingerprints: [UUID: String] = [:]
+
+    private func syncSearchIndex() {
+        var changed: [UUID] = []
+        var current: [UUID: String] = [:]
+        for job in jobs {
+            let fingerprint = "\(job.title)|\(job.state.rawValue)"
+            current[job.id] = fingerprint
+            if indexedFingerprints[job.id] != fingerprint { changed.append(job.id) }
+        }
+        let removed = indexedFingerprints.keys.filter { current[$0] == nil }
+        indexedFingerprints = current
+        SpotlightIndex.index(jobIDs: changed)
+        SpotlightIndex.remove(jobIDs: removed)
+    }
+
+    /// The setting changed: everything in, or everything out.
+    public func applySearchIndexSetting() {
+        if SpotlightIndex.isEnabled {
+            indexedFingerprints = [:]
+            syncSearchIndex()
+        } else {
+            SpotlightIndex.removeAll()
+        }
     }
 
     public func job(_ jobID: UUID) -> JobRecord? {
@@ -483,6 +518,17 @@ public final class JobLibraryModel {
             JobStore.delete(jobID: jobID)
             self?.refresh()
         }
+    }
+
+    /// Several at once, from the library's edit mode. Each goes through
+    /// `delete(jobID:)`, so a running one is stopped before its folder goes.
+    public func delete(jobIDs: some Collection<UUID>) {
+        for jobID in jobIDs { delete(jobID: jobID) }
+    }
+
+    /// On-disk size of one recording, for the library's edit mode.
+    public func diskUsage(of jobID: UUID) -> Int64 {
+        JobStore.diskUsage(of: JobStore.files(for: jobID))
     }
 
     /// Explicit re-run with a different language (§13.2): resets checkpoints

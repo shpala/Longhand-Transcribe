@@ -9,7 +9,9 @@ import LonghandEngines
 struct MacLibraryView: View {
 
     @State private var model = MacLibrary.model
-    @State private var selection: UUID?
+    /// Several at once, as a Mac list does: Command-click, Shift-click and
+    /// Select All. The detail shows the transcript for exactly one.
+    @State private var selection: Set<UUID> = []
     /// Siri and Shortcuts.
     @State private var requests = AppRequests.shared
     @Environment(\.openWindow) private var openWindow
@@ -17,7 +19,8 @@ struct MacLibraryView: View {
     @State private var showRecorder = false
     @State private var renameTarget: JobRecord?
     @State private var renameText = ""
-    @State private var deleteTarget: JobRecord?
+    /// What the delete confirmation is about: one row, or everything selected.
+    @State private var deleteTargets: [JobRecord] = []
     @State private var pendingImport: PendingImport?
     @State private var search = LibrarySearch()
     @State private var query = ""
@@ -42,7 +45,19 @@ struct MacLibraryView: View {
         var title: String?
         var markers: [Transcript.Marker] = []
         var location: CapturedLocation?
+        /// In-app takes only: the meeting the take was recorded in.
+        var calendarEvent: CalendarEventContext?
         var id: String { urls.map(\.absoluteString).joined() }
+    }
+
+    /// The one recording selected, when exactly one is.
+    private var selectedJob: JobRecord? {
+        guard selection.count == 1, let id = selection.first else { return nil }
+        return model.jobs.first { $0.id == id }
+    }
+
+    private var selectedJobs: [JobRecord] {
+        model.jobs.filter { selection.contains($0.id) }
     }
 
     private static let importTypes: [UTType] = {
@@ -79,12 +94,43 @@ struct MacLibraryView: View {
     private func moveSelection(by delta: Int) {
         let jobs = groupedJobs.flatMap(\.jobs)
         guard !jobs.isEmpty else { return }
-        guard let selection, let index = jobs.firstIndex(where: { $0.id == selection }) else {
-            selection = delta > 0 ? jobs.first?.id : jobs.last?.id
+        // From the selection's edge in the direction of travel, so a block
+        // of several steps off its own end.
+        let indices = jobs.indices.filter { selection.contains(jobs[$0].id) }
+        guard let edge = delta > 0 ? indices.max() : indices.min() else {
+            selection = [delta > 0 ? jobs.first!.id : jobs.last!.id]
             return
         }
-        let target = index + delta
-        if jobs.indices.contains(target) { self.selection = jobs[target].id }
+        let target = edge + delta
+        if jobs.indices.contains(target) { selection = [jobs[target].id] }
+    }
+
+    /// The import panel asked for from the File menu while this window was
+    /// closed. The window has just opened; the panel waits for it to settle.
+    private func importFromRequest() {
+        guard MacLibrary.commands.importRequested else { return }
+        MacLibrary.commands.importRequested = false
+        Task {
+            try? await Task.sleep(for: .milliseconds(450))
+            showImporter = true
+        }
+    }
+
+    /// Finder, on the recording's own folder. The original audio is selected
+    /// when it is still there, so the file people want is the one in front.
+    static func showInFinder(_ job: JobRecord) {
+        let files = JobStore.files(for: job.id)
+        NSWorkspace.shared.activateFileViewerSelecting([files.findOriginal() ?? files.root])
+    }
+
+    /// Delete… on a row: the row, unless it is part of a larger selection,
+    /// in which case the selection, as Finder does.
+    private func askToDelete(_ job: JobRecord) {
+        if selection.contains(job.id), selection.count > 1 {
+            deleteTargets = selectedJobs
+        } else {
+            deleteTargets = [job]
+        }
     }
 
     /// A new take asked for by Siri or a shortcut. A sheet already up would
@@ -117,9 +163,13 @@ struct MacLibraryView: View {
 
     // Broken out of `body`, whose modifier chain outgrew the type-checker.
     @ViewBuilder private var detailColumn: some View {
-        if let selection {
-            MacTranscriptView(jobID: selection)
+        if let job = selectedJob {
+            MacTranscriptView(jobID: job.id)
                 .environment(model)
+        } else if selection.count > 1 {
+            MacSelectionSummary(jobs: selectedJobs, model: model) {
+                deleteTargets = selectedJobs
+            }
         } else {
             ContentUnavailableView {
                 VStack(spacing: 16) {
@@ -170,21 +220,23 @@ struct MacLibraryView: View {
             if !urls.isEmpty { pendingImport = PendingImport(urls: urls) }
         }
         .sheet(isPresented: $showRecorder) {
-            MacRecordSheet { url, location, markers in
+            MacRecordSheet { url, details in
                 showRecorder = false
                 model.importRecording(from: url, securityScoped: false,
                                       deleteSourceAfterImport: true,
                                       declaredLanguage: declaredLanguage == "system" ? nil : declaredLanguage,
                                       expectedSpeakerCount: speakerCount == 0 ? nil : speakerCount,
-                                      location: location,
-                                      title: RecordingTitle.forTake(),
-                                      markers: markers)
-            } onSaveWithOptions: { url, location, markers in
+                                      location: details.location,
+                                      title: details.title,
+                                      markers: details.markers,
+                                      calendarEvent: details.calendarEvent)
+            } onSaveWithOptions: { url, details in
                 showRecorder = false
                 pendingImport = PendingImport(urls: [url], securityScoped: false,
                                               deleteAfterImport: true,
-                                              title: RecordingTitle.forTake(),
-                                              markers: markers, location: location)
+                                              title: details.title,
+                                              markers: details.markers, location: details.location,
+                                              calendarEvent: details.calendarEvent)
             } onCancel: {
                 showRecorder = false
             }
@@ -199,7 +251,10 @@ struct MacLibraryView: View {
         .onChange(of: requests.openRecording, initial: true) { _, id in
             guard let id else { return }
             requests.openRecording = nil
-            selection = id
+            selection = [id]
+        }
+        .onChange(of: MacLibrary.commands.importRequested, initial: true) { _, requested in
+            if requested { importFromRequest() }
         }
         .sheet(isPresented: $showOnboarding) {
             MacOnboardingView()
@@ -221,23 +276,23 @@ struct MacLibraryView: View {
             MacLibrary.commands.startRecording = { showRecorder = true }
             MacLibrary.commands.importFiles = { showImporter = true }
             MacLibrary.commands.renameSelection = {
-                guard let job = model.jobs.first(where: { $0.id == selection }) else { return }
+                guard let job = selectedJob else { return }
                 renameTarget = job
                 renameText = job.title
             }
             MacLibrary.commands.deleteSelection = {
-                deleteTarget = model.jobs.first { $0.id == selection }
+                deleteTargets = selectedJobs
             }
             MacLibrary.commands.selectPrevious = { moveSelection(by: -1) }
             MacLibrary.commands.selectNext = { moveSelection(by: 1) }
         }
         .onChange(of: selection) { _, newValue in
-            MacLibrary.commands.hasSelection = newValue != nil
+            MacLibrary.commands.selectionCount = newValue.count
         }
         .onDisappear {
             // The menu bar outlives the window; stale targets leave Rename and
             // Delete enabled and pointing at a dead view.
-            MacLibrary.commands.hasSelection = false
+            MacLibrary.commands.selectionCount = 0
             MacLibrary.commands.sidebarFocused = false
             MacLibrary.commands.startRecording = nil
             MacLibrary.commands.importFiles = nil
@@ -247,7 +302,7 @@ struct MacLibraryView: View {
             MacLibrary.commands.selectNext = nil
         }
         .modifier(LibraryPresentations(renameTarget: $renameTarget, renameText: $renameText,
-                                       deleteTarget: $deleteTarget, selection: $selection,
+                                       deleteTargets: $deleteTargets, selection: $selection,
                                        sidebarError: $sidebarError, pendingImport: $pendingImport,
                                        declaredLanguage: $declaredLanguage, speakerCount: $speakerCount,
                                        model: model))
@@ -286,7 +341,11 @@ struct MacLibraryView: View {
                                     }
                                 }
                                 Divider()
-                                Button("Delete…", role: .destructive) { deleteTarget = job }
+                                Button("Show in Finder") { Self.showInFinder(job) }
+                                Divider()
+                                Button(selection.contains(job.id) && selection.count > 1
+                                       ? "Delete \(selection.count) Recordings…" : "Delete…",
+                                       role: .destructive) { askToDelete(job) }
                             }
                     }
                 }
@@ -303,8 +362,8 @@ struct MacLibraryView: View {
 private struct LibraryPresentations: ViewModifier {
     @Binding var renameTarget: JobRecord?
     @Binding var renameText: String
-    @Binding var deleteTarget: JobRecord?
-    @Binding var selection: UUID?
+    @Binding var deleteTargets: [JobRecord]
+    @Binding var selection: Set<UUID>
     @Binding var sidebarError: RetryableError?
     @Binding var pendingImport: MacLibraryView.PendingImport?
     @Binding var declaredLanguage: String
@@ -325,19 +384,24 @@ private struct LibraryPresentations: ViewModifier {
             } message: {
                 Text("Only the name shown in your library changes; the recording and transcript are untouched.")
             }
-            .confirmationDialog("Delete “\(deleteTarget?.title ?? "Recording")”?",
-                                isPresented: Binding(get: { deleteTarget != nil },
-                                                     set: { if !$0 { deleteTarget = nil } })) {
-                Button("Delete", role: .destructive) {
-                    if let target = deleteTarget {
-                        if selection == target.id { selection = nil }
-                        model.delete(jobID: target.id)
-                    }
-                    deleteTarget = nil
+            .confirmationDialog(deleteTargets.count == 1
+                                ? "Delete “\(deleteTargets[0].title)”?"
+                                : "Delete \(deleteTargets.count) Recordings?",
+                                isPresented: Binding(get: { !deleteTargets.isEmpty },
+                                                     set: { if !$0 { deleteTargets = [] } })) {
+                Button(deleteTargets.count == 1 ? "Delete" : "Delete \(deleteTargets.count) Recordings",
+                       role: .destructive) {
+                    let ids = deleteTargets.map(\.id)
+                    selection.subtract(ids)
+                    model.delete(jobIDs: ids)
+                    deleteTargets = []
                 }
-                Button("Cancel", role: .cancel) { deleteTarget = nil }
+                Button("Cancel", role: .cancel) { deleteTargets = [] }
             } message: {
-                Text("This also deletes the original audio and the transcript. This can't be undone.")
+                let bytes = deleteTargets.reduce(Int64(0)) { $0 + model.diskUsage(of: $1.id) }
+                Text(deleteTargets.count == 1
+                     ? "This also deletes the original audio and the transcript. This can't be undone."
+                     : "This also deletes the original audio and the transcripts, freeing \(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)). This can't be undone.")
             }
             .alert(item: Binding(get: { model.errorAlert }, set: { model.errorAlert = $0 })) { alert in
                 Alert(title: Text(alert.title), message: Text(alert.message),
@@ -387,13 +451,37 @@ private struct LibraryPresentations: ViewModifier {
                                               expectedSpeakerCount: speakerCount == 0 ? nil : speakerCount,
                                               location: pending.location,
                                               title: pending.title,
-                                              markers: pending.markers)
+                                              markers: pending.markers,
+                                              calendarEvent: pending.calendarEvent)
                     }
                     pendingImport = nil
                 } onCancel: {
                     pendingImport = nil
                 }
             }
+    }
+}
+
+/// The detail column with several recordings selected: what they are, what
+/// they take, and the one thing to do to all of them at once.
+private struct MacSelectionSummary: View {
+    let jobs: [JobRecord]
+    let model: JobLibraryModel
+    let onDelete: () -> Void
+
+    private var bytes: Int64 {
+        jobs.reduce(Int64(0)) { $0 + model.diskUsage(of: $1.id) }
+    }
+
+    var body: some View {
+        ContentUnavailableView {
+            Label("\(jobs.count) Recordings Selected", systemImage: "checkmark.circle")
+        } description: {
+            Text("\(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)) on disk. Command-click to change the selection.")
+        } actions: {
+            Button("Delete \(jobs.count) Recordings…", role: .destructive, action: onDelete)
+                .keyboardShortcut(.delete, modifiers: .command)
+        }
     }
 }
 
@@ -476,12 +564,22 @@ private struct MacJobRow: View {
     }
 }
 
+/// Everything the sheet knew about a take that the audio file does not
+/// carry, handed over with the file when the take is saved.
+struct TakeDetails {
+    var location: CapturedLocation?
+    var markers: [Transcript.Marker] = []
+    var calendarEvent: CalendarEventContext?
+
+    var title: String { RecordingTitle.forTake(event: calendarEvent) }
+}
+
 /// The signature indigo record surface, Mac-sized.
 struct MacRecordSheet: View {
-    let onSave: (URL, CapturedLocation?, [Transcript.Marker]) -> Void
+    let onSave: (URL, TakeDetails) -> Void
     /// Routes the take through the same options an import gets (§7.1) rather
     /// than committing it to the saved defaults.
-    let onSaveWithOptions: (URL, CapturedLocation?, [Transcript.Marker]) -> Void
+    let onSaveWithOptions: (URL, TakeDetails) -> Void
     let onCancel: () -> Void
 
     @State private var recorder = MacRecorderService()
@@ -490,6 +588,9 @@ struct MacRecordSheet: View {
     /// and it never blocks the save path.
     @State private var locationCapture = LocationCapture()
     @State private var capturedLocation: CapturedLocation?
+    /// The meeting this take is being recorded in, when calendar titles are
+    /// on. Read once, like the location, and never blocks the take.
+    @State private var calendarEvent: CalendarEventContext?
     /// Flags and typed notes, on the recorder's clock.
     @State private var markers: [Transcript.Marker] = []
     @State private var noteText = ""
@@ -526,6 +627,12 @@ struct MacRecordSheet: View {
                         .font(.system(size: timerFontSize, weight: .light).monospacedDigit())
                         .foregroundStyle(cream)
                 }
+                if let event = calendarEvent {
+                    Label(event.title, systemImage: "calendar")
+                        .font(.caption).foregroundStyle(cream.opacity(0.7))
+                        .lineLimit(1)
+                        .help("This recording will be named after the calendar event in progress.")
+                }
                 if !markers.isEmpty {
                     Text(markerSummary)
                         .font(.caption).foregroundStyle(cream.opacity(0.7))
@@ -552,7 +659,7 @@ struct MacRecordSheet: View {
                         .disabled(!isCapturing)
                     Button {
                         addNote()
-                        if let url = recorder.stop() { onSave(url, capturedLocation, markers) }
+                        if let url = recorder.stop() { onSave(url, details) }
                     } label: {
                         Label("Stop & Save", systemImage: "stop.circle.fill")
                             .foregroundStyle(.red)
@@ -562,7 +669,7 @@ struct MacRecordSheet: View {
                 Button {
                     addNote()
                     if let url = recorder.stop() {
-                        onSaveWithOptions(url, capturedLocation, markers)
+                        onSaveWithOptions(url, details)
                     }
                 } label: {
                     Label("Stop & Save with Options…", systemImage: "slider.horizontal.3")
@@ -609,6 +716,9 @@ struct MacRecordSheet: View {
         .task {
             if await MacRecorderService.requestPermission() {
                 recorder.start()
+                if CalendarContext.isEnabled {
+                    calendarEvent = await CalendarContext.current()
+                }
                 if LocationCapture.isEnabled {
                     capturedLocation = await locationCapture.capture()
                 }
@@ -620,6 +730,10 @@ struct MacRecordSheet: View {
 
     private var isCapturing: Bool {
         recorder.state == .recording || recorder.state == .paused
+    }
+
+    private var details: TakeDetails {
+        TakeDetails(location: capturedLocation, markers: markers, calendarEvent: calendarEvent)
     }
 
     private var markerSummary: String {
@@ -646,7 +760,7 @@ struct MacRecordSheet: View {
         case .mark: if isCapturing { markers.append(Transcript.Marker(time: recorder.currentTime)) }
         case .stop:
             addNote()
-            if let url = recorder.stop() { onSave(url, capturedLocation, markers) }
+            if let url = recorder.stop() { onSave(url, details) }
         }
     }
 

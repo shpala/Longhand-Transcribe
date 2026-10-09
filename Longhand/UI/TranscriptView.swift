@@ -32,6 +32,16 @@ struct TranscriptView: View {
     @State private var newSpeakerTarget: Transcript.Turn?
     @State private var newSpeakerName = ""
     @State private var showSummaryEditor = false
+    @State private var showMarkers = false
+    @State private var editingMarker: Transcript.Marker?
+    @State private var splitTarget: SplitTarget?
+    /// Select mode: several passages to one speaker in one step.
+    @State private var isSelecting = false
+    @State private var selectedTurns: Set<Int> = []
+    @State private var batchNewSpeaker = false
+    @State private var batchNewSpeakerName = ""
+    /// The window's undo manager: shake on iPhone, Command-Z on iPad.
+    @Environment(\.undoManager) private var undoManager
     /// Why this transcript cannot be summarized, read once per load: the
     /// answer involves a system query.
     @State private var summaryUnavailableReason: String?
@@ -54,6 +64,13 @@ struct TranscriptView: View {
         var canEnroll: Bool
     }
 
+    private struct SplitTarget: Identifiable {
+        var id: Int { position }
+        var turn: Transcript.Turn
+        var position: Int
+        var words: [MergedWord]
+    }
+
     private struct ExportTarget: Identifiable {
         var id: String { label }
         var label: String
@@ -64,6 +81,9 @@ struct TranscriptView: View {
         /// Text to copy instead of the file's contents: the summary has no
         /// file of its own.
         var text: String?
+        /// What the shared copy is named after the recording. Nil shares the
+        /// file as it is.
+        var kind: ExportNaming.Kind?
     }
 
     /// Split out of `body`, whose modifier chain outgrew the type-checker.
@@ -72,8 +92,22 @@ struct TranscriptView: View {
         @Binding var confirmedExport: ExportTarget?
         @Binding var errorMessage: String?
         @Binding var infoMessage: String?
+        /// The recording's title, which names the shared copy.
+        let title: String
         let hapticTrigger: Int
         let onExportConfirmed: () -> Void
+
+        /// The file under the name it should arrive by. A copy that cannot
+        /// be made is reported, not papered over with `transcript.md`.
+        private func shareURL(_ target: ExportTarget) -> URL? {
+            guard let kind = target.kind else { return target.url }
+            do {
+                return try ExportStaging.stagedCopy(of: target.url, title: title, kind: kind)
+            } catch {
+                errorMessage = "Couldn't prepare \(target.label) for sharing: \(error.localizedDescription)"
+                return nil
+            }
+        }
 
         func body(content: Content) -> some View {
             content
@@ -102,7 +136,9 @@ struct TranscriptView: View {
                     Text("This file leaves on-device processing and goes to the destination you choose next.")
                 }
                 .sheet(item: $confirmedExport) { target in
-                    ShareSheet(items: [target.url])
+                    if let url = shareURL(target) {
+                        ShareSheet(items: [url])
+                    }
                 }
                 .alert("Something Went Wrong",
                        isPresented: Binding(get: { errorMessage != nil },
@@ -171,12 +207,23 @@ struct TranscriptView: View {
                 if transcript != nil, !query.trimmingCharacters(in: .whitespaces).isEmpty {
                     findBar(hits)
                 }
-                if transcript != nil, player.isLoaded {
+                if isSelecting, let transcript {
+                    selectionBar(transcript)
+                } else if transcript != nil, player.isLoaded {
                     PlaybackBar(markers: transcript?.markers ?? [],
                                 player: player, rate: $playbackRate)
                 }
             }
         }
+        .modifier(EditingPresentations(splitTarget: $splitTarget,
+                                       batchNewSpeaker: $batchNewSpeaker,
+                                       batchNewSpeakerName: $batchNewSpeakerName,
+                                       onSplit: { target, wordIndex in
+                                           correct { try screen.split(target.turn, at: target.position, beforeWord: wordIndex) }
+                                       },
+                                       onBatchNewSpeaker: { name in
+                                           reassignSelected { turns in try screen.assignToNewSpeaker(turns, named: name) }
+                                       }))
         .sheet(item: $editTarget) { turn in
             EditTurnSheet(speaker: turn.speaker, text: $editText) {
                 applyEdit(to: turn, newText: editText)
@@ -227,6 +274,8 @@ struct TranscriptView: View {
         .summaryEditor(isPresented: $showSummaryEditor, summary: screen.summary) { edited in
             correct { try screen.saveSummary(edited) }
         }
+        .markerPresentations(screen: screen, player: player, showMarkers: $showMarkers,
+                             editingMarker: $editingMarker) { errorMessage = $0 }
         // The summary arrives after the job: reload the text under the card
         // without touching playback.
         .onChange(of: isSummarizing) { _, working in
@@ -249,29 +298,28 @@ struct TranscriptView: View {
                                       confirmedExport: $confirmedExport,
                                       errorMessage: $errorMessage,
                                       infoMessage: $infoMessage,
+                                      title: record?.title ?? "Recording",
                                       hapticTrigger: confirmHaptic + actionHaptic,
                                       onExportConfirmed: { actionHaptic += 1 }))
+        // The keyboard commands for whichever window this transcript is in.
+        .focusedSceneValue(\.transcriptActions, TranscriptActions(
+            find: { isFinding = true },
+            togglePlayback: { player.toggle() },
+            skipBack: { player.skip(by: -TranscriptPlayer.skipInterval) },
+            skipForward: { player.skip(by: TranscriptPlayer.skipInterval) },
+            hasPlayback: player.isLoaded))
         .onAppear {
             load()
-            AppCommandTargets.shared.findInTranscript = { isFinding = true }
-            AppCommandTargets.shared.togglePlayback = { player.toggle() }
-            AppCommandTargets.shared.skipBack = { player.skip(by: -TranscriptPlayer.skipInterval) }
-            AppCommandTargets.shared.skipForward = { player.skip(by: TranscriptPlayer.skipInterval) }
-            AppCommandTargets.shared.hasPlayback = player.isLoaded
+            screen.undoManager = undoManager
         }
         // The screen can be opened before the job finishes.
         .onChange(of: jobsModel.jobs.first { $0.id == jobID }?.state) { _, _ in
             load(keepingPlayback: true)
         }
+        // The environment's undo manager can arrive after the first appear.
+        .onChange(of: undoManager == nil) { _, _ in screen.undoManager = undoManager }
         .onDisappear {
             player.stop()
-            // The targets outlive this view; stale ones leave Find and the
-            // playback items enabled with nothing on screen.
-            AppCommandTargets.shared.findInTranscript = nil
-            AppCommandTargets.shared.togglePlayback = nil
-            AppCommandTargets.shared.skipBack = nil
-            AppCommandTargets.shared.skipForward = nil
-            AppCommandTargets.shared.hasPlayback = false
         }
     }
 
@@ -369,9 +417,10 @@ struct TranscriptView: View {
                     SuppressedSpans(spans: screen.suppressedSpans)
                     ForEach(Array(transcript.turns.enumerated()), id: \.element.id) { position, turn in
                         ForEach(screen.rowMarkers(beforeTurnAt: position)) { marker in
-                            MarkerRow(label: screen.rowMarkerLabel(marker, at: position)) {
-                                player.seekAndPlay(to: marker.time)
-                            }
+                            MarkerRow(label: screen.rowMarkerLabel(marker, at: position),
+                                      onTap: { player.seekAndPlay(to: marker.time) },
+                                      onEdit: { editingMarker = marker },
+                                      onDelete: { correct { try screen.removeMarker(marker) } })
                         }
                         let isAuto = screen.isAutoLabeled(turn)
                         let isCurrent = position == currentTurn
@@ -403,6 +452,14 @@ struct TranscriptView: View {
                                  onUndoReassign: turn.assignedCluster != nil
                                      ? { reassign(turn, to: turn.cluster) } : nil,
                                  originalSpeakerName: transcript.displayName(forCluster: turn.cluster),
+                                 onSplit: screen.canSplit(at: position) ? {
+                                     if let words = screen.splittableWords(at: position) {
+                                         splitTarget = SplitTarget(turn: turn, position: position, words: words)
+                                     }
+                                 } : nil,
+                                 onJoin: turn.splitFromPrevious == true ? { correct { try screen.join(turn) } } : nil,
+                                 selection: isSelecting ? selectedTurns.contains(turn.id) : nil,
+                                 onToggleSelect: { toggleSelection(turn.id) },
                                  onSeek: {
                                      player.seekAndPlay(to: turn.start)
                                  },
@@ -413,9 +470,10 @@ struct TranscriptView: View {
                     }
                     // Flagged after the last turn began: drawn here, or they vanish.
                     ForEach(screen.trailingRowMarkers) { marker in
-                        MarkerRow(label: screen.rowMarkerLabel(marker, at: nil)) {
-                            player.seekAndPlay(to: marker.time)
-                        }
+                        MarkerRow(label: screen.rowMarkerLabel(marker, at: nil),
+                                  onTap: { player.seekAndPlay(to: marker.time) },
+                                  onEdit: { editingMarker = marker },
+                                  onDelete: { correct { try screen.removeMarker(marker) } })
                     }
                 }
                 .padding()
@@ -530,11 +588,14 @@ struct TranscriptView: View {
                 pendingExport = ExportTarget(label: "Transcript", url: files.transcriptText, toClipboard: true)
             }
             Divider()
-            Button("Markdown") { pendingExport = ExportTarget(label: "Markdown", url: files.transcriptMarkdown) }
-            Button("Text") { pendingExport = ExportTarget(label: "Text", url: files.transcriptText) }
-            Button("JSON (canonical)") { pendingExport = ExportTarget(label: "JSON (canonical)", url: files.transcriptJSON) }
+            Button("Markdown") { pendingExport = ExportTarget(label: "Markdown", url: files.transcriptMarkdown, kind: .markdown) }
+            Button("Text") { pendingExport = ExportTarget(label: "Text", url: files.transcriptText, kind: .text) }
+            Button("JSON (canonical)") { pendingExport = ExportTarget(label: "JSON (canonical)", url: files.transcriptJSON, kind: .json) }
             if let original = files.findOriginal() {
-                Button("Original audio") { pendingExport = ExportTarget(label: "Original audio", url: original) }
+                Button("Original audio") {
+                    pendingExport = ExportTarget(label: "Original audio", url: original,
+                                                 kind: .audio(fileExtension: original.pathExtension))
+                }
             }
         } label: {
             Label("Export", systemImage: "square.and.arrow.up")
@@ -569,6 +630,95 @@ struct TranscriptView: View {
         }
     }
 
+    // MARK: - Selecting passages
+
+    private func toggleSelection(_ id: Int) {
+        if selectedTurns.contains(id) { selectedTurns.remove(id) } else { selectedTurns.insert(id) }
+    }
+
+    private var selectedTurnList: [Transcript.Turn] {
+        (transcript?.turns ?? []).filter { selectedTurns.contains($0.id) }
+    }
+
+    private func reassignSelected(_ change: ([Transcript.Turn]) throws -> Void) {
+        let turns = selectedTurnList
+        guard !turns.isEmpty else { return }
+        correct {
+            try change(turns)
+            actionHaptic += 1
+        }
+        selectedTurns = []
+        isSelecting = false
+    }
+
+    /// Replaces the playback bar while selecting: how many, who to give
+    /// them to, and the way out.
+    private func selectionBar(_ transcript: Transcript) -> some View {
+        HStack(spacing: 12) {
+            Text(selectedTurns.isEmpty ? "Select passages"
+                 : "\(selectedTurns.count) selected")
+                .font(.subheadline.weight(.medium))
+                .accessibilityIdentifier("selection-count")
+            Spacer()
+            Menu {
+                ForEach(transcript.speakers.keys.sorted(), id: \.self) { cluster in
+                    Button(transcript.displayName(forCluster: cluster)) {
+                        reassignSelected { turns in try screen.reassign(turns, to: cluster) }
+                    }
+                }
+                Divider()
+                Button("Someone else…") {
+                    batchNewSpeakerName = ""
+                    batchNewSpeaker = true
+                }
+            } label: {
+                Label("Reassign to…", systemImage: "person.crop.circle.badge.questionmark")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .disabled(selectedTurns.isEmpty)
+            .accessibilityIdentifier("reassign-selected")
+            Button("Done") {
+                selectedTurns = []
+                isSelecting = false
+            }
+            .font(.subheadline.weight(.semibold))
+            .accessibilityIdentifier("selection-done")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.bar)
+    }
+
+    /// The split sheet and the batch "someone else" sheet, out of the body
+    /// chain for the type-checker's sake.
+    private struct EditingPresentations: ViewModifier {
+        @Binding var splitTarget: SplitTarget?
+        @Binding var batchNewSpeaker: Bool
+        @Binding var batchNewSpeakerName: String
+        let onSplit: (SplitTarget, Int) -> Void
+        let onBatchNewSpeaker: (String) -> Void
+
+        func body(content: Content) -> some View {
+            content
+                .sheet(item: $splitTarget) { target in
+                    SplitTurnSheet(speaker: target.turn.speaker, words: target.words) { wordIndex in
+                        onSplit(target, wordIndex)
+                        splitTarget = nil
+                    } onCancel: {
+                        splitTarget = nil
+                    }
+                }
+                .sheet(isPresented: $batchNewSpeaker) {
+                    NewSpeakerSheet(name: $batchNewSpeakerName) {
+                        onBatchNewSpeaker(batchNewSpeakerName)
+                        batchNewSpeaker = false
+                    } onCancel: {
+                        batchNewSpeaker = false
+                    }
+                }
+        }
+    }
+
     /// Actions on the transcript itself: re-identification after new
     /// enrollment (§10 re-entry edge), explicit re-transcription (§13.2),
     /// and export.
@@ -579,6 +729,39 @@ struct TranscriptView: View {
                 Button(action: summarize) {
                     Label("Summarize", systemImage: "sparkles")
                 }
+            }
+            Button {
+                showMarkers = true
+            } label: {
+                Label(screen.markers.isEmpty ? "Markers & Notes…" : "Markers & Notes (\(screen.markers.count))…",
+                      systemImage: "flag")
+            }
+            .accessibilityIdentifier("markers-sheet")
+            Button {
+                selectedTurns = []
+                isSelecting = true
+            } label: {
+                Label("Select Passages", systemImage: "checkmark.circle")
+            }
+            .accessibilityIdentifier("select-passages")
+            if screen.canUndo || screen.canRedo {
+                Divider()
+                Button {
+                    screen.undo()
+                } label: {
+                    Label(screen.undoActionName.isEmpty ? "Undo" : "Undo \(screen.undoActionName)",
+                          systemImage: "arrow.uturn.backward")
+                }
+                .disabled(!screen.canUndo)
+                .accessibilityIdentifier("undo")
+                Button {
+                    screen.redo()
+                } label: {
+                    Label(screen.redoActionName.isEmpty ? "Redo" : "Redo \(screen.redoActionName)",
+                          systemImage: "arrow.uturn.forward")
+                }
+                .disabled(!screen.canRedo)
+                .accessibilityIdentifier("redo")
             }
             Button {
                 do {
@@ -634,7 +817,6 @@ struct TranscriptView: View {
                 wasPlaying ? player.seekAndPlay(to: resumeAt) : player.seek(to: resumeAt)
             }
         }
-        AppCommandTargets.shared.hasPlayback = player.isLoaded
     }
 
     /// Runs a correction and reports a failure; the screen reloads its data
@@ -750,6 +932,13 @@ private struct TurnView: View {
     var onUndoReassign: (() -> Void)?
     /// What the diarizer called this turn, for the undo item's label.
     var originalSpeakerName: String?
+    /// Present when the turn's words are known and unedited.
+    var onSplit: (() -> Void)?
+    /// Present on a turn the user cut off the one before.
+    var onJoin: (() -> Void)?
+    /// Non-nil while selecting: whether this turn is picked.
+    var selection: Bool?
+    var onToggleSelect: (() -> Void)?
     let onSeek: () -> Void
     var onSeekToTime: ((TimeInterval) -> Void)?
 
@@ -808,7 +997,9 @@ private struct TurnView: View {
         .buttonStyle(.plain)
         .foregroundStyle(autoLabeled ? Color("LonghandIndigo") : Color.accentColor)
         // No custom accessibility label: the speaker's name is what VoiceOver
-        // should read, and what the UI tests query.
+        // should read, and what the UI tests query. The auto badge is a
+        // value, so it is read after the name rather than as part of it.
+        .accessibilityValue(autoLabeled ? "matched automatically, unconfirmed" : "")
         .accessibilityHint("Double-tap for speaker options")
     }
 
@@ -849,6 +1040,57 @@ private struct TurnView: View {
 
     var body: some View {
         let direction = BidiText.baseDirection(of: turn.text)
+        HStack(alignment: .top, spacing: 8) {
+            if let selection {
+                Image(systemName: selection ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(selection ? Color.accentColor : Color.secondary)
+                    .padding(.top, 10)
+                    .accessibilityHidden(true)
+            }
+            turnContent(direction: direction)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { if selection != nil { onToggleSelect?() } else { onSeek() } }
+        .accessibilityAction(named: "Play from here") { onSeek() }
+        // No identifier on the row: a container's identifier is inherited by
+        // every child, which would hide the timestamp's own `turn-N`.
+        .modifier(SelectionAccessibility(selection: selection, onToggleSelect: onToggleSelect))
+        .contextMenu {
+            if let onEdit {
+                Button(action: onEdit) { Label("Edit Text…", systemImage: "pencil") }
+            }
+            if let onRevert {
+                Button(action: onRevert) { Label("Revert to Original", systemImage: "arrow.uturn.backward") }
+            }
+            if let onSplit {
+                Button(action: onSplit) { Label("Split Passage…", systemImage: "scissors") }
+                    .accessibilityIdentifier("split-passage")
+            }
+            if let onJoin {
+                Button(action: onJoin) { Label("Join with Previous Passage", systemImage: "arrow.up.and.line.horizontal.and.arrow.down") }
+                    .accessibilityIdentifier("join-passage")
+            }
+            if onReassign != nil || onUndoReassign != nil {
+                Divider()
+                speakerMenuItems
+            }
+            Divider()
+            Button {
+                UIPasteboard.general.string = turn.text
+            } label: {
+                Label("Copy", systemImage: "doc.on.doc")
+            }
+            Button {
+                UIPasteboard.general.string = "[\(TranscriptClock.label(turn.start))] \(turn.speaker): \(turn.text)"
+            } label: {
+                Label("Copy with Timestamp", systemImage: "clock")
+            }
+            Button(action: onSeek) { Label("Play from Here", systemImage: "play.circle") }
+        }
+    }
+
+    @ViewBuilder private func turnContent(direction: BidiText.Direction) -> some View {
         VStack(alignment: direction == .rtl ? .trailing : .leading, spacing: 4) {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: direction == .rtl ? .trailing : .leading, spacing: 6) {
@@ -867,34 +1109,25 @@ private struct TurnView: View {
         .padding(8)
         // LonghandHighlight, not LonghandCream: white body text washes out
         // against lit cream.
-        .background(isCurrent ? Color("LonghandHighlight").opacity(0.6) : Color.clear,
+        .background(isCurrent ? Color("LonghandHighlight").opacity(0.6)
+                    : selection == true ? Color.accentColor.opacity(0.1) : Color.clear,
                     in: RoundedRectangle(cornerRadius: 10))
-        .contentShape(Rectangle())
-        .onTapGesture(perform: onSeek)
-        .accessibilityAction(named: "Play from here") { onSeek() }
-        .contextMenu {
-            if let onEdit {
-                Button(action: onEdit) { Label("Edit Text…", systemImage: "pencil") }
-            }
-            if let onRevert {
-                Button(action: onRevert) { Label("Revert to Original", systemImage: "arrow.uturn.backward") }
-            }
-            if onReassign != nil || onUndoReassign != nil {
-                Divider()
-                speakerMenuItems
-            }
-            Divider()
-            Button {
-                UIPasteboard.general.string = turn.text
-            } label: {
-                Label("Copy", systemImage: "doc.on.doc")
-            }
-            Button {
-                UIPasteboard.general.string = "[\(TranscriptClock.label(turn.start))] \(turn.speaker): \(turn.text)"
-            } label: {
-                Label("Copy with Timestamp", systemImage: "clock")
-            }
-            Button(action: onSeek) { Label("Play from Here", systemImage: "play.circle") }
+    }
+}
+
+/// VoiceOver reads a selected passage as selected and can toggle it; only
+/// while selecting, since the trait is otherwise a lie.
+private struct SelectionAccessibility: ViewModifier {
+    var selection: Bool?
+    var onToggleSelect: (() -> Void)?
+
+    func body(content: Content) -> some View {
+        if let selection, let onToggleSelect {
+            content
+                .accessibilityAddTraits(selection ? .isSelected : [])
+                .accessibilityAction(named: selection ? "Deselect" : "Select", onToggleSelect)
+        } else {
+            content
         }
     }
 }
@@ -964,6 +1197,7 @@ private struct PlaybackBar: View {
                         .background(.quaternary, in: Capsule())
                 }
                 .accessibilityLabel("Playback speed")
+                .accessibilityValue(TranscriptClock.rateLabel(rate))
                 .accessibilityIdentifier("playback-rate")
             }
             HStack(spacing: 8) {
@@ -983,6 +1217,8 @@ private struct PlaybackBar: View {
                     }
                 }
                 .accessibilityIdentifier("playback-scrubber")
+                .accessibilityLabel("Playback position")
+                .accessibilityValue("\(TranscriptClock.label(scrubTime ?? player.currentTime)) of \(TranscriptClock.label(player.duration))")
                     .overlay(alignment: .bottom) {
                         MarkerTrack(markers: markers, duration: player.duration) { time in
                             player.seekAndPlay(to: time)

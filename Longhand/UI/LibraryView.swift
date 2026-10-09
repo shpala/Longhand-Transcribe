@@ -1,3 +1,4 @@
+import CoreSpotlight
 import SwiftUI
 import UniformTypeIdentifiers
 import LonghandKit
@@ -13,6 +14,11 @@ struct LibraryView: View {
     @State private var showSettings = false
     @State private var pendingImport: PendingImport?
     @State private var deleteTarget: JobRecord?
+    /// Edit mode: several recordings at once, with what each costs on disk.
+    @State private var isSelecting = false
+    @State private var selectedJobs: Set<UUID> = []
+    @State private var sizesByJob: [UUID: Int64] = [:]
+    @State private var confirmBatchDelete = false
     @State private var renameTarget: JobRecord?
     /// Cleared by Import or Cancel, so a leftover value means the sheet was
     /// swiped away.
@@ -35,6 +41,9 @@ struct LibraryView: View {
     @State private var selection: UUID?
     /// Siri, Shortcuts, the Action Button and the Control Center control.
     @State private var requests = AppRequests.shared
+    /// iPad only: a transcript can open in a window of its own.
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.supportsMultipleWindows) private var supportsMultipleWindows
     /// Takes on disk that are not recordings yet: left by a crash mid-take,
     /// or refused by an import (a full disk, usually). Listed above the
     /// library until saved or deleted, never silently lost.
@@ -180,8 +189,13 @@ struct LibraryView: View {
     /// first; an import waiting on its options is left alone rather than
     /// imported or thrown away on someone else's behalf.
     private func startRecordingFromRequest() {
+        // Every open window observes the request; the first to act clears
+        // it, and the others read that rather than the value they were
+        // notified with. Two windows opening two record sheets would start
+        // two microphone taps.
+        guard requests.startRecording else { return }
         requests.startRecording = false
-        guard !showRecorder, pendingImport == nil else { return }
+        guard !showRecorder, pendingImport == nil, !recordingElsewhere else { return }
         if showOnboarding {
             openRecorderAfterOnboarding = true
             return
@@ -203,8 +217,36 @@ struct LibraryView: View {
     }
 
     private func openFromRequest(_ id: UUID) {
+        guard requests.openRecording == id else { return }
         requests.openRecording = nil
         if Self.isPad { selection = id } else { path = [id] }
+    }
+
+    /// A take is running in another window of this app: the record sheet
+    /// installs the live controls handler while it is up, and this window's
+    /// own sheet is not.
+    private var recordingElsewhere: Bool {
+        !showRecorder && LiveRecordingControls.handler != nil
+    }
+
+    /// The Record button, with the one reason it can refuse.
+    private func openRecorder() {
+        if recordingElsewhere {
+            model.errorAlert = JobLibraryModel.ErrorAlert(
+                title: "Already Recording",
+                message: "A recording is in progress in another Longhand window. Stop it there first.")
+        } else {
+            showRecorder = true
+        }
+    }
+
+    /// A link from the widget, or from anything else that knows the scheme.
+    private func openLink(_ url: URL) {
+        if WidgetSnapshot.isRecordLink(url) {
+            requests.recordRequested()
+        } else if let id = WidgetSnapshot.jobID(from: url) {
+            requests.openRequested(id)
+        }
     }
 
     // MARK: - Root content
@@ -220,7 +262,7 @@ struct LibraryView: View {
                 } description: {
                     Text("Import a call or meeting recording. Everything is processed on this device.")
                 } actions: {
-                    Button("Record") { showRecorder = true }
+                    Button("Record", action: openRecorder)
                         .buttonStyle(.borderedProminent)
                     Button("Import File") { showImporter = true }
                 }
@@ -265,6 +307,13 @@ struct LibraryView: View {
             refreshUnsavedTakes()
         }
         .background(Color("LonghandBackground").ignoresSafeArea())
+        .safeAreaInset(edge: .bottom) {
+            if isSelecting { selectionBar }
+        }
+        .onChange(of: model.jobs.map(\.id)) { _, ids in
+            // A recording deleted elsewhere leaves selection.
+            selectedJobs = selectedJobs.filter { ids.contains($0) }
+        }
         .navigationTitle("Longhand")
         .navigationDestination(for: UUID.self) { jobID in
             TranscriptView(jobID: jobID)
@@ -277,8 +326,6 @@ struct LibraryView: View {
             refreshUnsavedTakes()
             recoverUnsavedTakes()
             model.runUITestSynthImportIfRequested()
-            AppCommandTargets.shared.startRecording = { showRecorder = true }
-            AppCommandTargets.shared.importFiles = { showImporter = true }
             // Suppressed under UI tests, where a modal over the library eats
             // every toolbar tap the suites make.
             if !hasSeenOnboarding, model.jobs.isEmpty, !UITestSupport.isUITestRun {
@@ -293,10 +340,14 @@ struct LibraryView: View {
         .onContinueUserActivity("com.shpala.Longhand.library") { _ in
             model.refresh()
         }
-        .onDisappear {
-            AppCommandTargets.shared.startRecording = nil
-            AppCommandTargets.shared.importFiles = nil
+        // A tapped Spotlight result: the recording is its identifier.
+        .onContinueUserActivity(CSSearchableItemActionType) { activity in
+            if let id = SpotlightIndex.jobID(from: activity) { requests.openRequested(id) }
         }
+        // The keyboard commands for whichever window this library is in.
+        .focusedSceneValue(\.libraryActions, LibraryActions(
+            startRecording: openRecorder,
+            importFiles: { showImporter = true }))
     }
 
     private var jobList: some View {
@@ -337,9 +388,7 @@ struct LibraryView: View {
             }
         }
         ToolbarItem(placement: .primaryAction) {
-            Button {
-                showRecorder = true
-            } label: {
+            Button(action: openRecorder) {
                 Label("Record Audio", systemImage: "mic")
             }
         }
@@ -350,24 +399,87 @@ struct LibraryView: View {
                 } label: {
                     Label("Import File", systemImage: "square.and.arrow.down")
                 }
+                if !model.jobs.isEmpty {
+                    Divider()
+                    Button {
+                        beginSelecting()
+                    } label: {
+                        Label("Select Recordings", systemImage: "checkmark.circle")
+                    }
+                    .accessibilityIdentifier("select-recordings")
+                }
             } label: {
                 Label("Add", systemImage: "plus")
             }
         }
     }
 
+    // MARK: - Edit mode
+
+    private func beginSelecting() {
+        selectedJobs = []
+        // Sizes are a directory walk each; read once on entry, not per row.
+        sizesByJob = Dictionary(uniqueKeysWithValues: model.jobs.map { ($0.id, model.diskUsage(of: $0.id)) })
+        isSelecting = true
+    }
+
+    private func endSelecting() {
+        isSelecting = false
+        selectedJobs = []
+    }
+
+    private var selectedBytes: Int64 {
+        selectedJobs.reduce(0) { $0 + (sizesByJob[$1] ?? 0) }
+    }
+
+    /// Replaces the toolbar's row of actions while selecting.
+    private var selectionBar: some View {
+        HStack(spacing: 12) {
+            Text(selectedJobs.isEmpty ? "Select recordings"
+                 : "\(selectedJobs.count) selected · \(ByteCountFormatter.string(fromByteCount: selectedBytes, countStyle: .file))")
+                .font(.subheadline.weight(.medium))
+                .accessibilityIdentifier("library-selection-count")
+            Spacer()
+            Button(role: .destructive) {
+                confirmBatchDelete = true
+            } label: {
+                Label("Delete", systemImage: "trash")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .disabled(selectedJobs.isEmpty)
+            .accessibilityIdentifier("delete-selected")
+            Button("Done", action: endSelecting)
+                .font(.subheadline.weight(.semibold))
+                .accessibilityIdentifier("library-selection-done")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.bar)
+    }
+
     @ViewBuilder
     private func jobRow(_ job: JobRecord, hit: LibrarySearch.Result? = nil) -> some View {
         HStack(spacing: 8) {
             Button {
-                open(job)
+                if isSelecting {
+                    if selectedJobs.contains(job.id) { selectedJobs.remove(job.id) } else { selectedJobs.insert(job.id) }
+                } else {
+                    open(job)
+                }
             } label: {
                 HStack(spacing: 8) {
+                    if isSelecting {
+                        Image(systemName: selectedJobs.contains(job.id) ? "checkmark.circle.fill" : "circle")
+                            .font(.title3)
+                            .foregroundStyle(selectedJobs.contains(job.id) ? Color.accentColor : Color.secondary)
+                            .accessibilityHidden(true)
+                    }
                     JobRow(job: job, progress: model.progressByJob[job.id], hit: hit,
-                           hold: model.processingHold)
+                           hold: model.processingHold,
+                           sizeBytes: isSelecting ? sizesByJob[job.id] : nil)
                     Spacer(minLength: 0)
                     // No chevron on iPad: nothing is being pushed.
-                    if !Self.isPad {
+                    if !Self.isPad, !isSelecting {
                         Image(systemName: "chevron.forward")
                             .font(.footnote.weight(.semibold))
                             .foregroundStyle(.tertiary)
@@ -377,7 +489,8 @@ struct LibraryView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            if let onResume = resumeAction(for: job) {
+            .accessibilityAddTraits(isSelecting && selectedJobs.contains(job.id) ? .isSelected : [])
+            if !isSelecting, let onResume = resumeAction(for: job) {
                 Button(action: onResume) {
                     Label(job.isPaused ? "Resume" : "Retry",
                           systemImage: job.isPaused ? "play.circle.fill" : "arrow.clockwise")
@@ -426,6 +539,14 @@ struct LibraryView: View {
             .tint(.accentColor)
         }
         .contextMenu {
+            if supportsMultipleWindows {
+                Button {
+                    openWindow(value: job.id)
+                } label: {
+                    Label("Open in New Window", systemImage: "macwindow.badge.plus")
+                }
+                .accessibilityIdentifier("open-in-new-window")
+            }
             Button {
                 renameTarget = job
             } label: {
@@ -635,7 +756,9 @@ struct LibraryView: View {
                                                   deleteAfterImport: false)
                 }
             }
-            .onOpenURL(perform: receiveShared)
+            .onOpenURL { url in
+                if url.isFileURL { receiveShared(url) } else { openLink(url) }
+            }
             // `initial`, because a cold launch from Siri sets the request
             // before this view exists.
             .onChange(of: requests.startRecording, initial: true) { _, start in
@@ -664,6 +787,22 @@ struct LibraryView: View {
                     }
                 }
             }, content: importOptionsSheet)
+            .confirmationDialog(
+                selectedJobs.count == 1 ? "Delete 1 Recording?" : "Delete \(selectedJobs.count) Recordings?",
+                isPresented: $confirmBatchDelete,
+                titleVisibility: .visible
+            ) {
+                Button(selectedJobs.count == 1 ? "Delete 1 Recording" : "Delete \(selectedJobs.count) Recordings",
+                       role: .destructive) {
+                    deleteHaptic += 1
+                    model.delete(jobIDs: selectedJobs)
+                    endSelecting()
+                }
+                .accessibilityIdentifier("confirm-delete-selected")
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This also deletes the original audio and the transcripts, freeing \(ByteCountFormatter.string(fromByteCount: selectedBytes, countStyle: .file)). This can't be undone.")
+            }
             .confirmationDialog(
                 "Delete Recording?",
                 isPresented: Binding(get: { deleteTarget != nil },
@@ -824,6 +963,8 @@ private struct JobRow: View {
     var hit: LibrarySearch.Result?
     /// Why nothing is running right now, if the system asked for quiet.
     var hold: ProcessingHold?
+    /// Shown while selecting, where what a deletion frees is the question.
+    var sizeBytes: Int64?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -853,6 +994,12 @@ private struct JobRow: View {
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
                     }
+                }
+                if let sizeBytes {
+                    Text(ByteCountFormatter.string(fromByteCount: sizeBytes, countStyle: .file))
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("Size \(ByteCountFormatter.string(fromByteCount: sizeBytes, countStyle: .file))")
                 }
                 statusLine
                 if let hit, let snippet = hit.snippet {
@@ -1034,6 +1181,7 @@ private struct SettingsSheet: View {
     @AppStorage(CalendarContext.settingsKey) private var useCalendar = false
     @AppStorage(TranscriptSummarizer.settingsKey) private var summarize = true
     @AppStorage(ProcessingHold.lowPowerKey) private var pauseInLowPower = true
+    @AppStorage(SpotlightIndex.settingsKey) private var indexInSpotlight = true
     /// Read once per appearance: the answer involves a system query.
     @State private var summaryAvailability = TranscriptSummarizer.Availability.available
     @Environment(\.dismiss) private var dismiss
@@ -1086,6 +1234,17 @@ private struct SettingsSheet: View {
                     Text("Battery")
                 } footer: {
                     Text("Transcription is minutes of heavy work. With this on, it waits while Low Power Mode is on and continues when it ends. Transcription always waits while the device is too hot.")
+                }
+                Section {
+                    Toggle("Find transcripts in Spotlight", isOn: $indexInSpotlight)
+                        .onChange(of: indexInSpotlight) { _, _ in
+                            AppLibrary.model.applySearchIndexSetting()
+                        }
+                        .accessibilityIdentifier("settings-spotlight")
+                } header: {
+                    Text("Search")
+                } footer: {
+                    Text("Recordings and the words in their transcripts appear in the device's own search. The index stays on this device; turning this off removes it.")
                 }
                 ModelSettingsSection()
                 Section {

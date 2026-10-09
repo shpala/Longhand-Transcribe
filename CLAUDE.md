@@ -126,7 +126,11 @@ Three layers with hard boundaries:
   The Mac library is a single `Window` scene that can be closed while the
   app runs on (App Review rejected a closed window with no way back):
   Window > Longhand Library and the Dock reopen it, and intents reach it
-  through `AppRequests.present`, which reopens it before the request is read.
+  through `AppRequests.present`, which reopens it before the request is read;
+  New Recording, Import and Open Recent in the File menu take the same
+  route when the window is closed. The sidebar selection is a `Set<UUID>` (Mac lists
+  multi-select), the transcript has Select Passages, and the calendar needs
+  the sandbox's calendars entitlement, which the Mac target has.
   Playback outside the app goes through `NowPlaying` (in `LonghandEngines`,
   so the Mac gets Now Playing and the media keys from the same code):
   `TranscriptPlayer` claims the system controls on its first `play()`, never
@@ -154,6 +158,20 @@ Three layers with hard boundaries:
   location, under the same never-exported rule. `ProcessingHold` stops the
   pipeline in Low Power Mode or at a serious thermal state and
   `JobLibraryModel` resumes it when the hold lifts.
+  Recordings are in Core Spotlight (`SpotlightIndex`, both shells: title,
+  date and the transcript's words, nothing from §14.1 and not the summary;
+  `JobLibraryModel.refresh` indexes only what changed, corrections reindex
+  from `TranscriptScreenModel.mutate`, and the package tests never index
+  because `hostIsApp` is false in a test host). The iOS Home Screen widget
+  (`LonghandLiveActivity/RecordingsWidget.swift`) reads a snapshot the app
+  writes into the `group.com.shpala.Longhand` container
+  (`WidgetSnapshot.swift`, compiled into both; `WidgetBridge` writes it and
+  reloads the timeline only when the shown rows changed); its taps are
+  `longhand://record` and `longhand://open/<id>`, read by
+  `LibraryView.onOpenURL` beside shared files. iPad opens a transcript in
+  its own window (`WindowGroup(for: UUID.self)`, `TranscriptWindow`); the
+  keyboard commands are focused scene values, not a shared object, and only
+  the first library window acts on an `AppRequests` record request.
   Watch: capture UI + `WCSession` hand-off, plus
   `LonghandComplication/`, a WidgetKit extension embedded in the watch app
   whose tap opens `longhand://record` to start a take. Mac:

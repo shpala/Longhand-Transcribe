@@ -96,6 +96,11 @@ usage: driver.sh <command> [args]
                                 Recording permission for the terminal)
   mac-click <x> <y>             Synthetic click in screen POINTS; SwiftUI
                                 ignores AppleScript's "click at"
+  mac-seed                      Copy the committed COMPLETE job into the Mac
+                                app's sandbox container
+  mac-smoke                     Build, seed, launch; check the window, the
+                                sidebar row, the transcript, the menus, and
+                                that a closed window comes back; quit
   mac-menu                      Dump the running app's menu bar (works with the
                                 display asleep, unlike a screenshot)
 EOF
@@ -220,8 +225,13 @@ seed-sim)
     [ -d "$APP" ] || { echo "no sim build. Run: driver.sh build sim" >&2; exit 1; }
     xcrun simctl install "$SIM" "$APP"
     CONTAINER=$(xcrun simctl get_app_container "$SIM" "$BUNDLE_ID" data)
-    rm -rf "$CONTAINER/Documents/Recordings"
+    rm -rf "${CONTAINER:?}/Documents/Recordings"
     mkdir -p "$CONTAINER/Documents/Recordings"
+    # An iPad restores its windows: a transcript window left open by the
+    # last run comes back in front of the library, and the next suite waits
+    # for a row that is not on screen. Every seeded run starts with one
+    # library window.
+    rm -rf "${CONTAINER:?}/Library/Saved Application State"
     # UUID directory name must match the job record's id; regenerate copy under
     # the fixture's recorded id.
     JOB_ID=$(python3 -c "import json; print(json.load(open('.claude/skills/run-longhand/fixture/seed-job/job.json'))['id'])")
@@ -389,6 +399,38 @@ mac-click)
         swiftc -O -o "$CLICK" "$SRC"
     fi
     "$CLICK" "$X" "$Y"
+    ;;
+
+mac-seed)
+    # The Mac app is sandboxed; its library is in its container, which exists
+    # once the app has run on this Mac.
+    C="$HOME/Library/Containers/$BUNDLE_ID/Data/Documents/Recordings"
+    JOB_ID=$(python3 -c "import json; print(json.load(open('.claude/skills/run-longhand/fixture/seed-job/job.json'))['id'])")
+    mkdir -p "$C"
+    rm -rf "${C:?}/${JOB_ID:?}"
+    cp -R .claude/skills/run-longhand/fixture/seed-job "$C/$JOB_ID"
+    echo "seeded job $JOB_ID into the Mac container"
+    ;;
+
+mac-smoke)
+    # The Mac shell has no XCUITest target, so this is its smoke test: the
+    # accessibility tree through System Events, which needs the terminal in
+    # Privacy & Security > Accessibility, and the display awake. A seeded job
+    # keeps the welcome sheet away (it shows only over an empty library).
+    "$0" mac-build >/dev/null
+    "$0" mac-seed
+    APP="$DD-mac/Build/Products/Debug/Longhand.app"
+    osascript -e 'tell application "Longhand" to quit' 2>/dev/null || true
+    sleep 1
+    open "$PWD/$APP"
+    sleep 5
+    TITLE=$(python3 -c "import json; print(json.load(open('.claude/skills/run-longhand/fixture/seed-job/job.json'))['title'])")
+    CLICK="$DD-mac/mac-click"
+    [ -x "$CLICK" ] || swiftc -O -o "$CLICK" .claude/skills/run-longhand/mac-click.swift
+    STATUS=0
+    osascript .claude/skills/run-longhand/mac-smoke.applescript "$TITLE" "$CLICK" || STATUS=$?
+    osascript -e 'tell application "Longhand" to quit' 2>/dev/null || true
+    [ $STATUS -eq 0 ] && echo "mac-smoke: PASS" || { echo "mac-smoke: FAIL"; exit 1; }
     ;;
 
 mac-menu)

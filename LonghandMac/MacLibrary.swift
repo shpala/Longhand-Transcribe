@@ -19,9 +19,16 @@ enum MacLibrary {
 final class MacCommandTargets {
     var startRecording: (() -> Void)?
     var importFiles: (() -> Void)?
+    /// Import chosen from the File menu while the library window was closed:
+    /// the window is reopened and picks this up when it appears, the way a
+    /// Siri request is.
+    var importRequested = false
     var renameSelection: (() -> Void)?
     var deleteSelection: (() -> Void)?
-    var hasSelection = false
+    /// How many recordings the sidebar has selected. Rename takes exactly
+    /// one; Delete takes any number.
+    var selectionCount = 0
+    var hasSelection: Bool { selectionCount > 0 }
     /// Return only renames when the sidebar is the focused pane; an
     /// unguarded bare-Return shortcut ate Returns meant for text fields.
     var sidebarFocused = false
@@ -36,4 +43,6 @@ final class MacCommandTargets {
     var hasFindHits = false
     var editCurrentTurn: (() -> Void)?
     var hasCurrentTurn = false
+    /// Select Passages, owned by the transcript view.
+    var selectPassages: (() -> Void)?
 }

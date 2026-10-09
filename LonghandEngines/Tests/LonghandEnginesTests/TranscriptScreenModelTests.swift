@@ -56,6 +56,35 @@ import LonghandKit
         #expect(screen.placedMarkers(at: 0).isEmpty && screen.placedMarkers(at: 1).isEmpty)
     }
 
+    /// Markers made while recording can be relabelled, moved and removed
+    /// from the transcript afterwards, and the Markdown follows.
+    @Test func markersAreEditableAfterTheFact() async throws {
+        let (screen, files) = try await completedJob()
+        defer { try? FileManager.default.removeItem(at: files.root) }
+        try screen.addMarker(at: 6.0, label: "  Decision  ")
+        try screen.addMarker(at: 0.5, label: nil)
+        #expect(screen.markers.map(\.label) == [nil, "Decision"])
+
+        let flag = screen.markers[0]
+        try screen.relabelMarker(flag, to: "Opening")
+        try screen.moveMarker(screen.markers[1], to: 2.0)
+        #expect(screen.markers.map { ($0.label ?? "", $0.time) }.map { "\($0.0)@\($0.1)" } == ["Opening@0.5", "Decision@2.0"])
+        #expect(try String(contentsOf: files.transcriptMarkdown, encoding: .utf8).contains("Decision"))
+
+        try screen.removeMarker(screen.markers[1])
+        #expect(screen.markers.map(\.label) == ["Opening"])
+        #expect(!(try String(contentsOf: files.transcriptMarkdown, encoding: .utf8)).contains("Decision"))
+    }
+
+    @Test func aStagedExportCopyCarriesTheRecordingName() async throws {
+        let (_, files) = try await completedJob()
+        defer { try? FileManager.default.removeItem(at: files.root) }
+        let staged = try ExportStaging.stagedCopy(of: files.transcriptMarkdown, title: "Weekly sync: Q3", kind: .markdown)
+        defer { ExportStaging.sweep() }
+        #expect(staged.lastPathComponent == "Weekly sync- Q3 transcript.md")
+        #expect(try Data(contentsOf: staged) == Data(contentsOf: files.transcriptMarkdown))
+    }
+
     // MARK: - Summary
 
     /// The summary rides the exports: saving one puts it in the Markdown,
@@ -143,5 +172,89 @@ import LonghandKit
         #expect(TranscriptClock.label(3_900) == "1:05:00", "the Mac printed 65:00")
         #expect(TranscriptClock.rateLabel(1) == "1×")
         #expect(TranscriptClock.rateLabel(1.5) == "1.5×")
+    }
+}
+
+/// Every correction is one undoable step on the overlay, and undoing one
+/// rebuilds the exports as they were.
+@Suite struct TranscriptUndoTests {
+
+    @MainActor
+    private func completedJob() async throws -> (TranscriptScreenModel, JobFiles) {
+        let files = try seededJob()
+        try await JobPipeline.run(files: files, engines: stubEngines(), progress: { _ in })
+        let record = try #require(try AtomicFile.readJSON(JobRecord.self, from: files.job, stage: "job"))
+        let screen = TranscriptScreenModel(jobID: record.id, files: files)
+        screen.undoManager = UndoManager()
+        screen.load()
+        return (screen, files)
+    }
+
+    @MainActor
+    @Test func renameSplitAndMarkerAllUndoAndRedo() async throws {
+        let (screen, files) = try await completedJob()
+        defer { try? FileManager.default.removeItem(at: files.root) }
+        #expect(!screen.canUndo)
+
+        try screen.rename(cluster: "SPEAKER_00", to: "Dana")
+        #expect(screen.canUndo && screen.undoActionName == "Rename Speaker")
+        #expect(screen.transcript?.turns[0].speaker == "Dana")
+
+        let turn = try #require(screen.transcript?.turns[0])     // "We need Wednesday"
+        #expect(screen.canSplit(at: 0))
+        try screen.split(turn, at: 0, beforeWord: 2)
+        #expect(screen.transcript?.turns.map(\.text) == ["We need", "Wednesday", "Fine with me"])
+        #expect(screen.transcript?.turns[1].splitFromPrevious == true)
+        #expect(screen.undoActionName == "Split Passage")
+
+        try screen.addMarker(at: 1.0, label: "cut here")
+        #expect(screen.markers.count == 1)
+
+        screen.undo()
+        #expect(screen.markers.isEmpty)
+        #expect(screen.canRedo)
+        screen.undo()
+        #expect(screen.transcript?.turns.count == 2, "the split is undone")
+        screen.undo()
+        #expect(screen.transcript?.turns[0].speaker == "Speaker 1", "the rename is undone")
+        #expect(!screen.canUndo)
+        #expect(!(try String(contentsOf: files.transcriptMarkdown, encoding: .utf8)).contains("Dana"))
+
+        screen.redo()
+        #expect(screen.transcript?.turns[0].speaker == "Dana")
+        #expect(try String(contentsOf: files.transcriptMarkdown, encoding: .utf8).contains("Dana"))
+        screen.redo()
+        #expect(screen.transcript?.turns.count == 3)
+    }
+
+    @MainActor
+    @Test func aJoinRemovesTheSplitAndSeveralPassagesMoveTogether() async throws {
+        let (screen, files) = try await completedJob()
+        defer { try? FileManager.default.removeItem(at: files.root) }
+        let turn = try #require(screen.transcript?.turns[0])
+        try screen.split(turn, at: 0, beforeWord: 1)
+        let second = try #require(screen.transcript?.turns[1])
+        try screen.join(second)
+        #expect(screen.transcript?.turns.count == 2)
+
+        let both = try #require(screen.transcript?.turns)
+        try screen.assignToNewSpeaker(both, named: "Noa")
+        #expect(screen.transcript?.turns.allSatisfy { $0.speaker == "Noa" } == true)
+        #expect(screen.undoActionName == "Reassign 2 Passages")
+        screen.undo()
+        #expect(screen.transcript?.turns.map(\.speaker) == ["Speaker 1", "Speaker 2"])
+    }
+
+    /// An edited turn's words no longer match its text, so it cannot be cut
+    /// at a word; reverting the edit makes it splittable again.
+    @MainActor
+    @Test func anEditedTurnCannotBeSplit() async throws {
+        let (screen, files) = try await completedJob()
+        defer { try? FileManager.default.removeItem(at: files.root) }
+        let turn = try #require(screen.transcript?.turns[0])
+        try screen.edit(turn, to: "We need it Wednesday")
+        #expect(!screen.canSplit(at: 0))
+        try screen.revertEdit(try #require(screen.transcript?.turns[0]))
+        #expect(screen.canSplit(at: 0))
     }
 }

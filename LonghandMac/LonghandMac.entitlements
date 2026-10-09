@@ -14,5 +14,9 @@
 	<true/>
 	<key>com.apple.security.personal-information.location</key>
 	<true/>
+	<!-- Calendar titles (off by default in Settings): without this the
+	     sandbox denies the read and every take gets the dated title. -->
+	<key>com.apple.security.personal-information.calendars</key>
+	<true/>
 </dict>
 </plist>

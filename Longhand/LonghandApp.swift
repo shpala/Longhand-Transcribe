@@ -19,8 +19,11 @@ struct LonghandApp: App {
         // A take cut off by a crash leaves its Lock Screen card behind, with
         // buttons nothing will answer.
         RecordingActivityController.endOrphans()
+        // Synchronously, not in the task below: the library's first refresh
+        // can run before a task scheduled here does, and the widget's
+        // snapshot would then wait for the next change.
+        AppLibrary.startWatchReporting()
         Task { @MainActor in
-            AppLibrary.startWatchReporting()
             // Anything the watch delivered while this app was asleep, or that
             // ran out of background time mid-import, is finished here.
             await WatchLink.drainIncoming()
@@ -48,5 +51,12 @@ struct LonghandApp: App {
         }
         // Surfaced on iPadOS when Command is held; inert on iPhone.
         .commands { LonghandCommands() }
+
+        // "Open in New Window" on an iPad library row. The system offers
+        // this scene only where several windows are supported, so the iPhone
+        // never sees it.
+        WindowGroup("Transcript", for: UUID.self) { $jobID in
+            TranscriptWindow(jobID: $jobID)
+        }
     }
 }

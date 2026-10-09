@@ -50,6 +50,19 @@
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>
+	<!-- The widget's links: longhand://record opens the app recording, and
+	     longhand://open/<id> opens a transcript. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.shpala.Longhand</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>longhand</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>com.shpala.Longhand.library</string>

@@ -1,4 +1,6 @@
+import CoreSpotlight
 import SwiftUI
+import LonghandKit
 import LonghandEngines
 
 @main
@@ -31,6 +33,10 @@ final class LonghandAppDelegate: NSObject, NSApplicationDelegate {
     private var spaceMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // The File menu lists recent recordings from the library model, which
+        // the window fills on appearing; a launch that restores no window
+        // would otherwise offer an empty menu.
+        MacLibrary.model.refresh()
         #if DEBUG
         // The request Start Recording leaves, made from a shell, since there is
         // no command line way to run an App Intent:
@@ -65,6 +71,15 @@ final class LonghandAppDelegate: NSObject, NSApplicationDelegate {
     /// Window menu and the Dock icon bring the library back.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    /// A Spotlight result: the recording is the item's identifier. Through
+    /// `AppRequests`, which reopens the library window if it was closed.
+    func application(_ application: NSApplication, continue userActivity: NSUserActivity,
+                     restorationHandler: @escaping ([any NSUserActivityRestoring]) -> Void) -> Bool {
+        guard let id = SpotlightIndex.jobID(from: userActivity) else { return false }
+        AppRequests.shared.openRequested(id)
+        return true
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -116,23 +131,50 @@ struct LonghandCommands: Commands {
 
     private var targets: MacCommandTargets { MacLibrary.commands }
     private var player: TranscriptPlayer { MacLibrary.player }
+    /// Newest first, as the library lists them; ten is what a Mac's Open
+    /// Recent shows.
+    private var recentJobs: ArraySlice<JobRecord> { MacLibrary.model.jobs.prefix(10) }
 
     var body: some Commands {
+        // Both work with the library window closed: the view's own target is
+        // used when it is on screen, and otherwise the request goes the way
+        // Siri's does, which reopens the window first.
         CommandGroup(replacing: .newItem) {
-            Button("New Recording") { targets.startRecording?() }
-                .keyboardShortcut("r", modifiers: .command)
-            Button("Import…") { targets.importFiles?() }
-                .keyboardShortcut("o", modifiers: .command)
+            Button("New Recording") {
+                if let start = targets.startRecording { start() } else { AppRequests.shared.recordRequested() }
+            }
+            .keyboardShortcut("r", modifiers: .command)
+            Button("Import…") {
+                if let importFiles = targets.importFiles {
+                    importFiles()
+                } else {
+                    targets.importRequested = true
+                    openWindow(id: "library")
+                    NSApp.activate()
+                }
+            }
+            .keyboardShortcut("o", modifiers: .command)
+            // The library's newest recordings, as a Mac app lists its recent
+            // documents. Through the request Siri's Open Recording leaves, so
+            // a closed library window reopens on the chosen one.
+            Menu("Open Recent") {
+                ForEach(recentJobs, id: \.id) { job in
+                    Button(job.title) { AppRequests.shared.openRequested(job.id) }
+                }
+            }
+            .disabled(recentJobs.isEmpty)
         }
 
         CommandGroup(after: .pasteboard) {
             Divider()
             Button("Rename Recording…") { targets.renameSelection?() }
                 .keyboardShortcut(.return, modifiers: [])
-                .disabled(!targets.hasSelection || !targets.sidebarFocused)
-            Button("Delete Recording…") { targets.deleteSelection?() }
-                .keyboardShortcut(.delete, modifiers: .command)
-                .disabled(!targets.hasSelection)
+                .disabled(targets.selectionCount != 1 || !targets.sidebarFocused)
+            Button(targets.selectionCount > 1 ? "Delete \(targets.selectionCount) Recordings…" : "Delete Recording…") {
+                targets.deleteSelection?()
+            }
+            .keyboardShortcut(.delete, modifiers: .command)
+            .disabled(!targets.hasSelection)
         }
 
         CommandGroup(after: .textEditing) {
@@ -145,6 +187,9 @@ struct LonghandCommands: Commands {
             Button("Edit Current Turn…") { targets.editCurrentTurn?() }
                 .keyboardShortcut("e", modifiers: .command)
                 .disabled(!targets.hasCurrentTurn)
+            Button("Select Passages") { targets.selectPassages?() }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+                .disabled(targets.selectPassages == nil)
         }
 
         CommandGroup(after: .sidebar) {

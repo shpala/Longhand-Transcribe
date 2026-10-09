@@ -335,6 +335,8 @@ struct MacSettingsView: View {
     @AppStorage(WhisperModelVariant.defaultsKey) private var whisperVariant =
         WhisperModelVariant.turbo.rawValue
     @AppStorage(LocationCapture.settingsKey) private var captureLocation = false
+    @AppStorage(CalendarContext.settingsKey) private var useCalendar = false
+    @AppStorage(SpotlightIndex.settingsKey) private var indexInSpotlight = true
     @AppStorage(TranscriptSummarizer.settingsKey) private var summarize = true
     @AppStorage(ProcessingHold.lowPowerKey) private var pauseInLowPower = true
     @State private var diskUsage: Int64 = 0
@@ -351,6 +353,15 @@ struct MacSettingsView: View {
                 }
                 Toggle("Save location with recordings", isOn: $captureLocation)
                 Text("Off by default. Tags new recordings made on this Mac with where they were made. Stored only on this Mac, shown only to you, and never included in exports.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                Toggle("Name recordings after calendar events", isOn: $useCalendar)
+                Text("Off by default. A recording made during a calendar event takes the event's name, and the event's attendees are offered when you name a speaker. Longhand reads your calendar only when a recording starts, never writes to it, and keeps the event with the recording on this Mac.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                Toggle("Find transcripts in Spotlight", isOn: $indexInSpotlight)
+                    .onChange(of: indexInSpotlight) { _, _ in
+                        MacLibrary.model.applySearchIndexSetting()
+                    }
+                Text("Recordings and the words in their transcripts appear in Spotlight. The index stays on this Mac; turning this off removes it.")
                     .font(.footnote).foregroundStyle(.secondary)
                 Toggle("Summarize new transcripts", isOn: $summarize)
                     .disabled(!summaryAvailability.isAvailable)

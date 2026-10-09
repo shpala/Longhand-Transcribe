@@ -61,10 +61,14 @@ public struct Transcript: Codable, Sendable, Equatable {
         /// The word timings no longer describe the text, so the playback
         /// highlight falls back to turn level.
         public var edited: Bool?
+        /// The user cut this turn off the one before it (a `TurnSplit` in
+        /// the overlay), so "join with the previous passage" is offered.
+        public var splitFromPrevious: Bool?
 
         public init(id: Int, cluster: String, speaker: String, start: TimeInterval, end: TimeInterval,
                     overlapped: Bool, text: String,
-                    assignedCluster: String? = nil, edited: Bool? = nil) {
+                    assignedCluster: String? = nil, edited: Bool? = nil,
+                    splitFromPrevious: Bool? = nil) {
             self.id = id
             self.cluster = cluster
             self.speaker = speaker
@@ -74,6 +78,7 @@ public struct Transcript: Codable, Sendable, Equatable {
             self.text = text
             self.assignedCluster = assignedCluster
             self.edited = edited
+            self.splitFromPrevious = splitFromPrevious
         }
 
         /// The cluster whose display name this turn should carry: the user's

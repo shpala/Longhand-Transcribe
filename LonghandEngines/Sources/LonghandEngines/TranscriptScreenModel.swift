@@ -161,25 +161,139 @@ public final class TranscriptScreenModel {
         }
     }
 
+    // MARK: - Undo
+
+    /// The system's undo manager for the window this screen is in, handed
+    /// over by the view: shake on iPhone, Command-Z on iPad and the Edit
+    /// menu on the Mac all reach it. Nil means corrections still work and
+    /// simply cannot be undone.
+    public var undoManager: UndoManager? {
+        didSet { refreshUndoState() }
+    }
+    public private(set) var canUndo = false
+    public private(set) var canRedo = false
+    public private(set) var undoActionName = ""
+    public private(set) var redoActionName = ""
+
+    /// Every correction goes through here: the overlay is small, so undo is
+    /// a snapshot of the whole file before the change, and redo a snapshot
+    /// of it after. Both go back through `rerender`, so an undone edit
+    /// leaves the exports as they were before it.
+    func mutate(_ actionName: String, _ change: () throws -> Void) throws {
+        let before = currentOverlay()
+        try change()
+        registerUndo(restoring: before, actionName: actionName)
+        load()
+        // The words in search are the corrected ones.
+        SpotlightIndex.index(jobIDs: [jobID])
+    }
+
+    private func currentOverlay() -> UserOverlay? {
+        (try? AtomicFile.readJSON(UserOverlay.self, from: files.overlay, stage: "overlay")) ?? nil
+    }
+
+    private func registerUndo(restoring snapshot: UserOverlay?, actionName: String) {
+        guard let undoManager else { return }
+        undoManager.registerUndo(withTarget: self) { target in
+            MainActor.assumeIsolated {
+                let current = target.currentOverlay()
+                try? JobPipeline.restoreOverlay(files: target.files, snapshot)
+                // Registered during an undo, this becomes the redo.
+                target.registerUndo(restoring: current, actionName: actionName)
+                target.load()
+                target.refreshUndoState()
+                SpotlightIndex.index(jobIDs: [target.jobID])
+            }
+        }
+        undoManager.setActionName(actionName)
+        refreshUndoState()
+    }
+
+    public func undo() {
+        undoManager?.undo()
+        refreshUndoState()
+    }
+
+    public func redo() {
+        undoManager?.redo()
+        refreshUndoState()
+    }
+
+    public func refreshUndoState() {
+        canUndo = undoManager?.canUndo ?? false
+        canRedo = undoManager?.canRedo ?? false
+        undoActionName = undoManager?.undoActionName ?? ""
+        redoActionName = undoManager?.redoActionName ?? ""
+    }
+
     // MARK: - Corrections
 
     /// Corrections live in the overlay, never in `transcript.json`, so a
     /// re-merge cannot lose them.
     public func edit(_ turn: Transcript.Turn, to newText: String) throws {
-        try JobPipeline.editTurnText(files: files, turn: turn, newText: newText)
-        load()
+        try mutate("Edit Text") {
+            try JobPipeline.editTurnText(files: files, turn: turn, newText: newText)
+        }
     }
 
     public func revertEdit(_ turn: Transcript.Turn) throws {
-        try JobPipeline.clearTurnEdit(files: files, turn: turn)
-        load()
+        try mutate("Revert Text") {
+            try JobPipeline.clearTurnEdit(files: files, turn: turn)
+        }
     }
 
     /// Reattributes one passage. §9.2: the diarizer's own claim is left in
     /// place, so centroid lookup and enrollment still read machine output.
     public func reassign(_ turn: Transcript.Turn, to cluster: String, displayName: String? = nil) throws {
-        try JobPipeline.assignTurn(files: files, turn: turn, toCluster: cluster, displayName: displayName)
-        load()
+        try mutate("Reassign Passage") {
+            try JobPipeline.assignTurn(files: files, turn: turn, toCluster: cluster, displayName: displayName)
+        }
+    }
+
+    /// Several passages to one speaker, as one undoable step.
+    public func reassign(_ turns: [Transcript.Turn], to cluster: String, displayName: String? = nil) throws {
+        guard !turns.isEmpty else { return }
+        try mutate(turns.count == 1 ? "Reassign Passage" : "Reassign \(turns.count) Passages") {
+            try JobPipeline.assignTurns(files: files, turns: turns, toCluster: cluster, displayName: displayName)
+        }
+    }
+
+    public func assignToNewSpeaker(_ turns: [Transcript.Turn], named name: String) throws {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        try reassign(turns, to: UserOverlay.mintSpeakerCluster(), displayName: trimmed)
+    }
+
+    // MARK: - Splitting
+
+    /// The words of a turn as the split sheet lists them: the merged words
+    /// when the job kept them and the text is still theirs, otherwise nil,
+    /// and the turn cannot be split (an edited turn's words no longer match
+    /// its text; an older job has no word timings to cut at).
+    public func splittableWords(at position: Int) -> [MergedWord]? {
+        guard let transcript, position < transcript.turns.count,
+              transcript.turns[position].edited != true else { return nil }
+        let words = Array(index.words(forTurnAt: position))
+        guard words.count > 1,
+              words.map(\.text).joined(separator: " ") == transcript.turns[position].text else { return nil }
+        return words
+    }
+
+    public func canSplit(at position: Int) -> Bool { splittableWords(at: position) != nil }
+
+    /// Cuts the turn so that `wordIndex` starts a new one.
+    public func split(_ turn: Transcript.Turn, at position: Int, beforeWord wordIndex: Int) throws {
+        guard let words = splittableWords(at: position), wordIndex > 0, wordIndex < words.count else { return }
+        try mutate("Split Passage") {
+            try JobPipeline.splitTurn(files: files, turn: turn, atWordIndex: wordIndex,
+                                      atTime: words[wordIndex].start)
+        }
+    }
+
+    public func join(_ turn: Transcript.Turn) throws {
+        try mutate("Join Passages") {
+            try JobPipeline.joinTurn(files: files, turn: turn)
+        }
     }
 
     /// The minted cluster has no centroid behind it, so `canEnroll` refuses
@@ -193,8 +307,9 @@ public final class TranscriptScreenModel {
     public func rename(cluster: String, to newName: String) throws {
         let newName = Self.cleanedName(newName)
         guard !newName.isEmpty else { return }
-        try JobPipeline.relabelSpeaker(files: files, cluster: cluster, newName: newName)
-        load()
+        try mutate("Rename Speaker") {
+            try JobPipeline.relabelSpeaker(files: files, cluster: cluster, newName: newName)
+        }
     }
 
     /// A name as typed, without the space a keyboard's autocomplete leaves
@@ -206,8 +321,9 @@ public final class TranscriptScreenModel {
 
     /// One tap of an "auto" chip: the §13.1 "the user said" bit flips.
     public func confirm(cluster: String) throws {
-        try JobPipeline.confirmSpeaker(files: files, cluster: cluster)
-        load()
+        try mutate("Confirm Speaker") {
+            try JobPipeline.confirmSpeaker(files: files, cluster: cluster)
+        }
     }
 
     public func canEnroll(cluster: String) -> Bool {
@@ -216,6 +332,39 @@ public final class TranscriptScreenModel {
               diarization.centroids?[cluster] != nil else { return false }
         let clusterTurns = transcript.turns.filter { $0.cluster == cluster }
         return SpeakerMatcher.isCleanForEnrollment(clusterTurns: clusterTurns)
+    }
+
+    // MARK: - Markers
+
+    /// Every marker, in time order, for the markers sheet.
+    public var markers: [Transcript.Marker] {
+        (transcript?.markers ?? []).sorted { $0.time < $1.time }
+    }
+
+    /// A note made after the fact, at the playhead or wherever the sheet
+    /// says. Same overlay entry as one typed while recording.
+    public func addMarker(at time: TimeInterval, label: String?) throws {
+        try mutate("Add Marker") {
+            try JobPipeline.addMarker(files: files, at: time, label: label)
+        }
+    }
+
+    public func relabelMarker(_ marker: Transcript.Marker, to label: String) throws {
+        try mutate("Edit Note") {
+            try JobPipeline.updateMarker(files: files, id: marker.id, label: .some(label))
+        }
+    }
+
+    public func moveMarker(_ marker: Transcript.Marker, to time: TimeInterval) throws {
+        try mutate("Move Marker") {
+            try JobPipeline.updateMarker(files: files, id: marker.id, time: time)
+        }
+    }
+
+    public func removeMarker(_ marker: Transcript.Marker) throws {
+        try mutate("Delete Marker") {
+            try JobPipeline.removeMarker(files: files, id: marker.id)
+        }
     }
 
     // MARK: - Summary

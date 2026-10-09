@@ -62,8 +62,20 @@ The UI-test suites are the interaction harness; run them with `$D uitest`:
 | `LonghandUITests/TranscriptEditingUITests` | edit a turn, revert it (needs `seed-sim`) |
 | `LonghandUITests/WordSeekUITests` | tap a word → playhead jumps to it (needs `seed-sim`) |
 | `LonghandUITests/TakeRecoveryUITests` | kill the app mid-take → relaunch imports it; a refused take is listed and Save imports it (`--uitest-unsaved-take`) |
+| `LonghandUITests/PassageEditingUITests` | split a passage at a word, undo it, reassign two passages to a new speaker (needs `seed-sim`) |
+| `LonghandUITests/LibrarySelectionUITests` | library edit mode: select a recording, see its size, delete it (needs `seed-sim`; deletes the fixture) |
+| `LonghandUITests/MarkerEditingUITests` | add, relabel and delete a note from the Markers & Notes sheet (needs `seed-sim`) |
+| `LonghandUITests/LargeTypeUITests` | the record sheet at the largest accessibility text size, every control still hittable |
 | `LonghandUITests/NotesDuringRecordingUITests` | type a note while recording → it is in the transcript (skips if the job cannot complete on this simulator) |
 | `LonghandUITests/AppStoreScreenshotTests` | the App Store screenshot set (needs `seed-store-demo`) |
+| `LonghandUITests/SpotlightUITests` | the newest finished recording is Spotlight's Top Hit and opens from it; records and deletes a six-second take if the library is empty (device only; skips on the simulator, see Gotchas) |
+| `LonghandUITests/MultiWindowUITests` | Open in New Window on an iPad row puts the transcript in a second window (needs an iPad simulator via `LONGHAND_SIM_ID` and `seed-sim`; skips on iPhone) |
+
+An iPad run is the same commands with the simulator chosen up front, since
+`resolve_sim` picks an iPhone: `export LONGHAND_SIM_ID=<ipad udid>` (from
+`xcodebuild -showdestinations`), then `$D build sim`, `$D seed-sim`,
+`$D uitest … sim`. The UI tests share the default DerivedData, so finish one
+simulator's run before starting another's.
 
 **Ordering matters when you batch them.** The four "needs `seed-sim`" suites
 read a fixture out of the app container; every suite that launches with
@@ -76,10 +88,14 @@ immediately before the fixture suites, or keep them in their own batch.
 
 ## Mac (screenshot-driven; there is no XCUITest target for it)
 
-The Mac and watch shells have no automated UI tests, so Mac verification is
-manual driving through the driver:
+The Mac and watch shells have no XCUITest target. The Mac has a smoke test
+through the accessibility tree, and beyond it verification is manual
+driving through the driver:
 
 ```bash
+$D mac-smoke                        # build, seed, launch, check the window, a row,
+                                    # the transcript, the menus, close + reopen; quit
+$D mac-seed                         # just the committed fixture into the Mac container
 $D mac-run --fresh                  # build + relaunch (--fresh wipes its library)
 $D mac-shot build/mac.png           # screenshot the display, then LOOK at it
 $D mac-click 740 298                # click in screen POINTS (Retina pixels ÷ 2)
@@ -149,6 +165,18 @@ add these to the `xcodebuild` call (the key file stays outside the repo):
 -allowProvisioningUpdates -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_<KEYID>.p8 \
   -authenticationKeyID <KEYID> -authenticationKeyIssuerID <ISSUER>
 ```
+
+**A new App Group is the one thing the key cannot do.** Adding
+`com.apple.security.application-groups` to an entitlements file makes every
+build fail with "doesn't support the … App Group" until the group exists and
+is attached to each App ID that claims it. The App Store Connect API can
+enable the App Groups capability on an App ID (`POST
+/v1/bundleIdCapabilities`, type `APP_GROUPS`) but has no endpoint for groups
+themselves, and `xcodebuild` with the key answers "Authentication failed"
+when it tries to register one. Register the group and attach it in the
+developer portal (Identifiers > App Groups, then each App ID's App Groups
+capability > Configure), and the keyed build then regenerates the profiles
+and succeeds. Hit 9 Oct 2026 for `group.com.shpala.Longhand`.
 
 Speaker profiles live outside job folders; pull them with:
 `xcrun devicectl device copy from --device <UDID> --domain-type appDataContainer --domain-identifier com.shpala.Longhand --source "Library/Application Support/speaker-profiles.json" --destination <dest>`
@@ -500,6 +528,30 @@ Useless for agents; nothing to observe programmatically.
   (`IDEDistributionPipeline.log` in the `.xcdistributionlogs` bundle the run
   prints a path to), not in xcodebuild's output. Prefix the command with
   `PATH=/usr/bin:/bin:/usr/sbin:/sbin`. Hit 26 Aug 2026.
+- **`devicectl` cannot read files at the root of an App Group container.**
+  `device copy from --domain-type appGroupDataContainer` works for a
+  subdirectory (`--source "Library/Application Support"`) and for `/`, but a
+  root-level file fails with "File paths cannot contain '..'" and the copy
+  of `/` leaves root files out, which reads as the app never having written
+  them. The widget snapshot lives under Application Support for this reason.
+  Hit 9 Oct 2026.
+- **An iPad simulator restores its windows.** A transcript window left open
+  by `MultiWindowUITests` comes back in front of the library on the next
+  launch, and the next suite waits for a row that is not on screen.
+  `seed-sim` clears `Library/Saved Application State` for this reason; a
+  run that does not seed should expect it. Hit 9 Oct 2026.
+- **Core Spotlight does not index on the simulator.** `isIndexingAvailable()`
+  says yes and every `indexSearchableItems` then fails with
+  `CSIndexErrorDomain -1000` (index unavailable); the app logs it under
+  subsystem `com.shpala.Longhand`, category `spotlight`. Spotlight on the
+  simulator shows only web suggestions for the title. `SpotlightUITests`
+  skips there; verify search on a device. Hit 9 Oct 2026.
+- **A locked Mac screen gives the app no windows.** With
+  `CGSSessionScreenIsLocked` set (`ioreg -n Root -d1`), the Mac app launches
+  and runs but System Events counts zero windows and Window > Longhand
+  Library opens nothing, which reads exactly like the window failing to
+  open. `mac-smoke` and every `mac-shot` need the screen unlocked; `mac-menu`
+  still works. Hit 9 Oct 2026.
 - **WCSession `transferFile` does NOT deliver between paired simulators**:
   the watch side even reports "Delivered" (didFinish, no error) while the
   phone's wcd never sees the file. Verified empirically 19 Aug 2026. The
