@@ -57,21 +57,27 @@ public final class TranscriptionLanguages {
     public var needsModel: [TranscriptionLanguage] { Self.allNeedsModel }
 
     /// The handful shown inline, so the common case is not a scroll through
-    /// 90. Seeded with the two §4.2 names, reordered by use from then on.
+    /// 90. Empty until a model language has actually been chosen: it was
+    /// seeded with the two §4.2 names, which put Hebrew and Russian and a
+    /// download notice in front of everyone, including people who will never
+    /// use either. Once chosen, a language stays inline, so the person who
+    /// does use it still reaches it in one tap.
     public var recentModelLanguages: [TranscriptionLanguage] {
-        let stored = UserDefaults.standard.string(forKey: Self.recentKey) ?? "he,ru"
+        let stored = UserDefaults.standard.string(forKey: Self.recentKey) ?? ""
         let codes = stored.split(separator: ",").map(String.init)
         let known = Set(needsModel.map(\.code))
         return codes.filter(known.contains).prefix(5).map(TranscriptionLanguage.init(code:))
     }
 
-    static let recentKey = "recentModelLanguages"
+    /// Public so the iOS test reset can clear it: a language chosen in one
+    /// run would otherwise be inline in the next.
+    public static let recentKey = "recentModelLanguages"
 
     /// Sentinels and on-device languages are not recorded: they are already
     /// reachable without scrolling.
     public func remember(_ code: String) {
         guard needsModel.contains(where: { $0.code == code }) else { return }
-        var codes = (UserDefaults.standard.string(forKey: Self.recentKey) ?? "he,ru")
+        var codes = (UserDefaults.standard.string(forKey: Self.recentKey) ?? "")
             .split(separator: ",").map(String.init)
         codes.removeAll { $0 == code }
         codes.insert(code, at: 0)
@@ -143,4 +149,77 @@ public final class TranscriptionLanguages {
         default: return TranscriptionLanguage(code: stored).name
         }
     }
+
+    // MARK: - What a model language costs
+
+    /// The model language a stored value resolves to, or nil when Apple's
+    /// engine handles it. "Automatic" on a phone set to Russian resolves to
+    /// Russian: the model language nobody chose, and the one a note about
+    /// costs most needs to cover. Mixed resolves to no single language.
+    public func modelLanguage(for stored: String) -> TranscriptionLanguage? {
+        switch stored {
+        case Self.systemSentinel: return deviceLanguageIsOnDevice ? nil : deviceLanguage
+        case Self.mixedSentinel: return nil
+        default: return needsModel.first { $0.code == stored }
+        }
+    }
+
+    /// True when the stored value routes to WhisperKit.
+    public func usesModel(_ stored: String) -> Bool {
+        stored == Self.mixedSentinel || modelLanguage(for: stored) != nil
+    }
+
+    /// Said under the picker while a model language is selected, and only
+    /// then: the size header prices the group, but nothing told a person
+    /// choosing Hebrew that the words-while-recording preview and the summary
+    /// would not come with it, or that transcription waits on a model load.
+    /// Each of those surfaced later as a missing feature or a slow job.
+    public func limitations(for stored: String) -> String? {
+        limitations(for: stored,
+                    modelDownloaded: WhisperKitEngine.isDownloaded(WhisperModelVariant.current),
+                    summarizable: TranscriptSummarizer.modelReads(language:))
+    }
+
+    /// The pure part, with the two device facts injected so it tests without
+    /// a 626 MB download or Apple Intelligence.
+    func limitations(for stored: String,
+                     modelDownloaded: Bool,
+                     summarizable: (String) -> Bool) -> String? {
+        guard usesModel(stored) else { return nil }
+        let language = modelLanguage(for: stored)
+        let download = modelDownloaded ? "" : ", a one-time \(Self.modelSizeDescription) download"
+
+        var sentences: [String] = []
+        if stored == Self.mixedSentinel {
+            sentences.append("Mixed uses the Whisper speech model\(download).")
+            sentences.append("No words while recording; a summary depends on the languages found.")
+        } else if let language {
+            if stored == Self.systemSentinel {
+                sentences.append("Automatic means \(language.name) on this device, which Apple's speech recognition does not cover, so it uses the Whisper speech model\(download).")
+            } else {
+                sentences.append("\(language.name) uses the Whisper speech model\(download).")
+            }
+            sentences.append(summarizable(language.code)
+                             ? "No words while recording."
+                             : "No words while recording, and no summary or title.")
+        }
+        sentences.append("The model loads before transcription, which can take a minute or two when it has not run recently.")
+        if let language, Self.lowResource.contains(language.code) {
+            sentences.append("Whisper saw little \(language.name) in training, so expect more errors than in a widely spoken language.")
+        }
+        return sentences.joined(separator: " ")
+    }
+
+    /// Whisper's authors report accuracy falling off sharply for the
+    /// languages it saw little of in training (Radford et al. 2022: the
+    /// Fleurs results in Appendix D and the training hours in Appendix E).
+    /// This is the low end of that curve as the paper reports it, an
+    /// approximation rather than a measurement made with this app, which is
+    /// why the note it drives says "expect more errors" and gives no figure.
+    static let lowResource: Set<String> = [
+        "am", "as", "ba", "bn", "bo", "br", "fo", "gu", "ha", "haw", "ht", "jw",
+        "km", "lb", "ln", "lo", "mg", "mi", "mn", "mr", "mt", "my", "ne", "oc",
+        "pa", "ps", "sa", "sd", "si", "sn", "so", "su", "tg", "tk", "tt", "uz",
+        "yi", "yo",
+    ]
 }

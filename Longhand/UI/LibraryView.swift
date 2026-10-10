@@ -1223,7 +1223,7 @@ private struct SettingsSheet: View {
                 } header: {
                     Text("Recording")
                 } footer: {
-                    Text("Shows what the microphone hears as it is said, for the languages Apple's speech recognition covers. A preview only: the transcript, with speakers, is made from the whole recording afterwards. Recognition pauses while Longhand is in the background; the recording does not.")
+                    Text("Shows what the microphone hears as it is said, for the languages Apple's speech recognition covers. A preview only: the transcript, with speakers, is made from the whole recording afterwards and is the more accurate of the two. Recognition pauses while Longhand is in the background; the recording does not.")
                 }
                 Section {
                     Toggle("Summarize new transcripts", isOn: $summarize)

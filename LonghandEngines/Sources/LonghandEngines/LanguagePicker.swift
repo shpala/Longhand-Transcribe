@@ -58,15 +58,71 @@ public struct LanguagePicker: View {
         // view triggers it.
         .task { await catalog.load() }
 
-        Button("More languages…") { showingAll = true }
+        // "Additional" rather than "More": the row is the whole model group
+        // until something from it has been chosen, so it names the group.
+        Button("Additional languages…") { showingAll = true }
             .accessibilityIdentifier("more-languages")
             .sheet(isPresented: $showingAll) {
                 LanguageListView(declaredLanguage: $declaredLanguage)
             }
 
+        ModelLanguageNote(declaredLanguage: declaredLanguage)
+
         Text(TranscriptionLanguages.bothAreLocalNote)
             .font(.caption)
             .foregroundStyle(.secondary)
+    }
+}
+
+/// What the selected language costs, shown only while it is one WhisperKit
+/// serves (or Automatic resolving to one), with a way to fetch the model now
+/// rather than at the first recording. Selecting never downloads: a person
+/// looking at Hebrew in Settings has not asked for 626 MB, and the job-time
+/// gate (§4.2.3(ii)) stays in place for the ones who never come here.
+struct ModelLanguageNote: View {
+    let declaredLanguage: String
+    @State private var catalog = TranscriptionLanguages.shared
+    @State private var downloads = ModelDownloadState.shared
+    @State private var error: String?
+    /// Bumped when a download finishes so the presence check re-runs.
+    @State private var refreshToken = 0
+
+    var body: some View {
+        // Read here so the view re-evaluates when a download starts or ends;
+        // the presence check is a plain file lookup and observes nothing.
+        let downloading = downloads.isDownloading
+        if let note = catalog.limitations(for: declaredLanguage) {
+            Text(note)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier("language-limitations")
+            let variant = WhisperModelVariant.current
+            if let fraction = downloads.fraction(for: variant) {
+                ProgressView(value: fraction) {
+                    Text("Downloading \(variant.displayName)…").font(.caption)
+                }
+            } else if !modelPresent {
+                Button("Download Now (\(TranscriptionLanguages.modelSizeDescription))") {
+                    Task {
+                        if let failure = await downloads.download(variant) { error = failure }
+                        refreshToken += 1
+                    }
+                }
+                .accessibilityIdentifier("language-download")
+                .disabled(downloading)
+                .alert("Couldn't Download Model",
+                       isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
+                    Button("OK") { error = nil }
+                } message: {
+                    Text(error ?? "")
+                }
+            }
+        }
+    }
+
+    private var modelPresent: Bool {
+        _ = refreshToken
+        return WhisperKitEngine.isDownloaded(WhisperModelVariant.current)
     }
 }
 

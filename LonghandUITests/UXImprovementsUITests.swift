@@ -36,6 +36,21 @@ final class UXImprovementsUITests: XCTestCase {
         // set, which is what keeps the picker from rendering blank.
         XCTAssertTrue(app.staticTexts["Arabic"].waitForExistence(timeout: 5),
                       "the picker should show the language chosen from the list")
+        // And the bill arrives with it: what choosing a model language costs
+        // is said under the picker, only while one is chosen.
+        let note = app.staticTexts["language-limitations"].firstMatch
+        XCTAssertTrue(note.waitForExistence(timeout: 5), "a model language should carry its note")
+        XCTAssertTrue(note.label.hasPrefix("Arabic uses the Whisper speech model"), note.label)
+        XCTAssertTrue(note.label.contains("No words while recording"), note.label)
+        // Selecting never downloads; the offer is a separate button, there
+        // exactly when the note still names the download. The simulator
+        // keeps the model between runs, so either state is possible here.
+        XCTAssertEqual(app.buttons["language-download"].exists, note.label.contains("download"),
+                       "the download offer should follow the note")
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "picker-note-arabic"
+        shot.lifetime = .keepAlways
+        add(shot)
     }
 
     @MainActor
@@ -60,15 +75,19 @@ final class UXImprovementsUITests: XCTestCase {
         // Spanish proves the on-device group is read from the framework.
         XCTAssertTrue(app.buttons["Spanish"].exists,
                       "on-device languages should be the full set, not a hardcoded three")
-        XCTAssertTrue(app.buttons["Hebrew"].exists, "Hebrew should be offered under the model group")
-        // "Mixed" is a mode covering the whole group, so it heads it.
+        // Nothing from the model group is inline until it has been chosen:
+        // Hebrew and Russian used to be seeded here for everyone.
+        XCTAssertFalse(app.buttons["Hebrew"].exists, "no model language should be inline on a fresh install")
+        // "Mixed" is a mode covering the whole group, so it is always there.
         let mixed = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Mixed'")).firstMatch
         XCTAssertTrue(mixed.exists, "Mixed should be in the model group")
-        XCTAssertLessThan(mixed.frame.minY, app.buttons["Hebrew"].frame.minY,
-                          "Mixed should sit above the languages in its group")
         // Close the menu without changing the setting; the rest of this test
         // needs the sheet, not a modal over it.
         app.buttons["Automatic (English)"].firstMatch.tap()
+        // Automatic on an English device is Apple's engine: no note, no offer.
+        XCTAssertFalse(app.staticTexts["language-limitations"].exists,
+                       "Apple's languages should carry no note")
+        XCTAssertFalse(app.buttons["language-download"].exists)
 
         XCTAssertTrue(app.staticTexts["Speakers"].exists, "speaker-count default picker should be visible")
         XCTAssertTrue(app.switches["Save location with recordings"].exists,

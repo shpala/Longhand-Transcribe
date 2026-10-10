@@ -503,6 +503,12 @@ Useless for agents; nothing to observe programmatically.
   single `Canvas`; keep TimelineView ticks ≥ 0.25 s *under UI tests*, since the
   level meter runs ~12 Hz for humans and drops to 0.25 s automatically when
   any `--uitest-` launch arg is present (`UITestSupport.isUITestRun`).
+- **A fresh install has no model language inline.** Since 10 Oct 2026 the
+  picker's Whisper group shows only Mixed and "Additional languages…"
+  (identifier `more-languages`) until one has been chosen, so a test that
+  wants Hebrew in the picker goes through the searchable list first, or sets
+  the default with `--uitest-default-language he`. The note under the picker
+  is `language-limitations`, its download offer `language-download`.
 - **Count cells, not identifiers.** One row exposes its accessibility
   identifier on several nested elements,
   `app.cells.containing(.any, identifier: "status-COMPLETE").count`, never

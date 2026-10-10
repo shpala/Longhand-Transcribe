@@ -39,6 +39,9 @@ struct LonghandApp: App {
             try? FileManager.default.removeItem(at: ImportService.recordingsRoot)
             try? FileManager.default.removeItem(at: RecorderService.takesDirectory)
             SpeakerProfileStore.deleteAll()
+            // The picker's inline model languages are use-driven, and a
+            // previous run's choice is state too.
+            UserDefaults.standard.removeObject(forKey: TranscriptionLanguages.recentKey)
         }
         UITestSupport.seedSynthTranscriptIfRequested()
         UITestSupport.parkJobsIfRequested()

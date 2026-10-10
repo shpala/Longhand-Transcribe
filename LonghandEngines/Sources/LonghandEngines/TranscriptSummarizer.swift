@@ -91,6 +91,14 @@ public nonisolated enum TranscriptSummarizer {
     /// `language` is the transcript's BCP-47 tag. `nil` means unknown, which
     /// is left to the model: it refuses what it cannot read, and that refusal
     /// is reported like any other failure.
+    /// Whether the model reads a language at all, apart from whether it is
+    /// available right now: the language picker names the summary as a cost
+    /// of choosing a language, which is true whether or not Apple
+    /// Intelligence happens to be on today.
+    public static func modelReads(language code: String) -> Bool {
+        SystemLanguageModel.default.supportsLocale(Locale(identifier: code))
+    }
+
     public static func availability(for language: String?) -> Availability {
         let device = deviceAvailability
         guard device.isAvailable else { return device }

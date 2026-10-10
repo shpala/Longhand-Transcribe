@@ -117,6 +117,7 @@ speaker names confirmed and a few turns corrected, settles both at once.
 | Summaries (addition) | `LonghandKit/Sources/LonghandKit/Summary/TranscriptSummary.swift` (+`SummaryChunker`), `LonghandEngines/Sources/LonghandEngines/TranscriptSummarizer.swift`, `SummaryViews.swift`, `summary.json` | Apple's on-device model through the Foundation Models framework; chunked over the model's window; cached beside the transcript, led into the Markdown export, labelled stale after a correction, deleted by a re-transcribe; languages the model does not speak are refused with a reason |
 | Calendar titles (addition) | `LonghandEngines/Sources/LonghandEngines/CalendarContext.swift`, `ImportMetadata.calendarEvent`, rename sheets | off by default; the event in progress names the take and its attendees are offered when naming a speaker; metadata.json only, never exported; iOS only |
 | Live preview while recording (addition) | `LonghandEngines/Sources/LonghandEngines/LiveTranscriber.swift` (+`LiveTranscriptView`), `LonghandKit/.../Models/LiveTranscriptText.swift`, `TakeCapture.onBuffer`, `MacPreviewInput` | Apple's `SpeechTranscriber` streaming with volatile results, for its languages only; a preview, never a checkpoint, overlay or export; suspended in the background and while paused; see "Words as they are said, and names from the summary" below |
+| Model-language note in the picker (addition) | `TranscriptionLanguages.limitations(for:)`, `ModelLanguageNote` in `LanguagePicker.swift`, `ModelDownloadState` (LonghandEngines) | what choosing a Whisper language costs, said under the picker only while one is selected; the inline model group starts empty; see "The model group waits to be asked" below |
 | Generated titles (addition) | `JobRecord.titleOrigin`, `TranscriptSummary.title`, `JobStore.applyGeneratedTitle`, `TranscriptSummarizer.SummaryDraft.title` | the summary's title replaces a date-stamp placeholder and nothing a person, a file or a calendar named; a rename ends it; toggle under Summaries |
 | Warm speech model (addition) | `LonghandKit/.../Jobs/WarmInstanceCache.swift`, `WhisperKitEngine.warmModel`, `prewarm(variant:forLanguageSetting:)` | one Whisper instance kept five idle minutes between jobs and loaded during a take that will need it; released on memory pressure, in the background, under a hold and on weight deletion; a bounded deviation from §7.3, see below |
 | Stop notification (addition) | `Longhand/Audio/TakeNotifier.swift` | a time-sensitive local notification when a take is interrupted or halts with the app not in front |
@@ -397,9 +398,10 @@ ones, all now covered by tests:
   transcript. Quality across those 90 is not uniform, so the list states what
   the model claims rather than promising each works well. Only the recent few
   are inline, with `LanguageListView` (searchable, a sheet on both platforms
-  since the Mac's Settings form has no navigation stack) behind "More
-  languages…"; recency is seeded with he/ru and reordered by use, rather than a
-  "popular languages" list chosen on the owner's behalf.
+  since the Mac's Settings form has no navigation stack) behind "Additional
+  languages…"; recency starts empty and fills by use (it was seeded with
+  he/ru until 10 Oct 2026, see "The model group waits to be asked"), rather
+  than a "popular languages" list chosen on the owner's behalf.
 
 - **Markers drawn among the words (22 Aug 2026).**
   `LonghandKit/Sources/LonghandKit/Transcript/MarkerPlacement.swift` (pure, tested) plus
@@ -1796,3 +1798,42 @@ to five seconds and cancels past that, dropping the analyzer either way. The
 no-speech screen on both shells now shows the processing timings card as the
 transcript screen does, since "why did a silent take take three minutes" is a
 fair question and the test that found the above needed it answered.
+
+## The model group waits to be asked (10 Oct 2026)
+
+The language picker already priced the Whisper group in its header, but two
+things were still wrong with it. The inline part of that group was seeded
+with Hebrew and Russian, so every fresh install showed two languages and a
+626 MB notice to people who would never use either. And the header was the
+whole disclosure: nothing told a person choosing Hebrew that the
+words-while-recording preview and the summary would not come with it, or
+that transcription waits on a model load. Each of those arrived later as a
+missing feature or a slow job.
+
+`TranscriptionLanguages.recentModelLanguages` now starts empty; the Whisper
+section holds Mixed and "Additional languages…" until a model language has
+been chosen, after which it stays inline, so the person who does use Hebrew
+still reaches it in one tap. `limitations(for:)` returns a note for any
+stored value that routes to WhisperKit, Automatic included when the device
+language is outside Apple's ten (your phone set to Russian is the case
+nobody chose), and nil otherwise: the engine, the download while it is still
+pending, no words while recording, no summary or title unless Apple's model
+reads the language (Dutch, Swedish and the others in
+`TranscriptSummarizer.modelReads`), the model load, and for the languages at
+the low end of Whisper's training data, "expect more errors". That last set
+is `TranscriptionLanguages.lowResource`, taken from the Whisper paper's
+Fleurs results and training hours; it is an approximation rather than a
+measurement made with this app, which is why the sentence gives no figure.
+`ModelLanguageNote` (in `LanguagePicker.swift`, both shells) shows the note
+under the picker with a "Download Now" button while the model is absent.
+Selecting never downloads, and the §4.2.3(ii) job-time gate stays for people
+who never open Settings. `ModelDownloadState` moved from the iOS shell into
+LonghandEngines so the note and the iOS model section share one view of a
+download in progress.
+
+Tests: `ModelLanguageNoteTests` (Engines, the note's pure part with the
+device facts injected) and `UXImprovementsUITests`, which now asserts that a
+fresh install has nothing from the model group inline and no note under
+Automatic (English), and that choosing Arabic from the list produces both.
+The Settings footer for the preview now also says the transcript is the more
+accurate of the two, which is the honest answer to why they differ.

@@ -366,7 +366,7 @@ struct MacSettingsView: View {
                 Text("Recordings and the words in their transcripts appear in Spotlight. The index stays on this Mac; turning this off removes it.")
                     .font(.footnote).foregroundStyle(.secondary)
                 Toggle("Show words while recording", isOn: $livePreview)
-                Text("Shows what the microphone hears as it is said, for the languages Apple's speech recognition covers. A preview only: the transcript, with speakers, is made from the whole recording afterwards.")
+                Text("Shows what the microphone hears as it is said, for the languages Apple's speech recognition covers. A preview only: the transcript, with speakers, is made from the whole recording afterwards and is the more accurate of the two.")
                     .font(.footnote).foregroundStyle(.secondary)
                 Toggle("Summarize new transcripts", isOn: $summarize)
                     .disabled(!summaryAvailability.isAvailable)
