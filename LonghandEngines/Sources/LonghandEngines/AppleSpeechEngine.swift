@@ -136,12 +136,20 @@ public nonisolated final class AppleSpeechEngine: SpeechTranscribing {
         guard let code = target.languageCode?.identifier else {
             throw LonghandError.engineUnavailable(engine: Self.engineID, language: "und")
         }
-        let candidates = supportedLocales.filter { $0.language.languageCode?.identifier == code }
-        guard !candidates.isEmpty else {
+        guard let locale = Self.resolveLocale(languageCode: code, in: supportedLocales) else {
             // Covers both an unsupported language and environments (like
             // simulators) that report no locales at all.
             throw LonghandError.engineUnavailable(engine: Self.engineID, language: code)
         }
+        return locale
+    }
+
+    /// The supported locale for a language code, preferring the device's own
+    /// region when Apple offers it. Shared with the live preview, which must
+    /// pick the same locale the final pass will.
+    static func resolveLocale(languageCode code: String, in supported: [Locale]) -> Locale? {
+        let candidates = supported.filter { $0.language.languageCode?.identifier == code }
+        guard !candidates.isEmpty else { return nil }
         if let region = Locale.current.region?.identifier,
            let regionMatch = candidates.first(where: { $0.region?.identifier == region }) {
             return regionMatch

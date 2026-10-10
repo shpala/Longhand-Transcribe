@@ -29,7 +29,29 @@ public nonisolated enum JobStore {
     public static func rename(jobID: UUID, to title: String) throws {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        try mutate(jobID: jobID) { $0.title = trimmed }
+        // A person's title, from here on: no summary replaces it.
+        try mutate(jobID: jobID) {
+            $0.title = trimmed
+            $0.titleOrigin = nil
+        }
+    }
+
+    /// Names a recording after what was said in it, if nobody has named it
+    /// yet: only a date-stamp placeholder, or an earlier generated title,
+    /// gives way. Returns whether the title changed. Same read-modify-write
+    /// as `rename`, and read as late as possible for the same reason: the
+    /// model took seconds, and a rename may have landed meanwhile.
+    @discardableResult
+    public static func applyGeneratedTitle(_ title: String, jobID: UUID) throws -> Bool {
+        guard let title = TranscriptSummary.usableTitle(title) else { return false }
+        var changed = false
+        try mutate(jobID: jobID) { record in
+            guard record.acceptsGeneratedTitle, record.title != title else { return }
+            record.title = title
+            record.titleOrigin = .generated
+            changed = true
+        }
+        return changed
     }
 
     /// Read-modify-write of one field, as late as possible.

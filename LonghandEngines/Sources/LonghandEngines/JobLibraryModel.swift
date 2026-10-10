@@ -482,11 +482,20 @@ public final class JobLibraryModel {
             // "too short" either, unless someone asked.
             guard !transcript.turns.isEmpty else { return }
             if !requested, !TranscriptSummarizer.isLongEnough(transcript) { return }
-            let title = job(jobID)?.title ?? "Recording"
+            let record = job(jobID)
+            // A placeholder title would only tell the model the date, and
+            // whatever stands in for it comes back as the model's own title.
+            let title = record.flatMap { $0.acceptsGeneratedTitle ? nil : $0.title }
             let summary = try await TranscriptSummarizer.summarize(transcript, title: title)
             // The job may have been deleted while the model worked.
             guard FileManager.default.fileExists(atPath: files.root.path) else { return }
             try AtomicFile.writeJSON(summary, to: files.summary)
+            // Before the rerender, so the exports carry the new name. The
+            // store checks the origin again: a rename during the model's
+            // seconds of work wins.
+            if TranscriptSummarizer.namesRecordings, let generated = summary.title {
+                try JobStore.applyGeneratedTitle(generated, jobID: jobID)
+            }
             try JobPipeline.rerender(files: files)
         } catch LonghandError.cancelled {
             return

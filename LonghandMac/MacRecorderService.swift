@@ -1,5 +1,33 @@
 import AVFoundation
 import Observation
+import LonghandEngines
+
+/// A second client on the input device, feeding the live preview while
+/// `AVAudioRecorder` writes the file. macOS lets both read the microphone at
+/// once; the engine never touches the recorder, so a preview that fails or
+/// is turned off leaves the take exactly as it was.
+nonisolated final class MacPreviewInput: @unchecked Sendable {
+    private let engine = AVAudioEngine()
+
+    init(feeding live: LiveTranscriber) throws {
+        let node = engine.inputNode
+        let format = node.outputFormat(forBus: 0)
+        guard format.sampleRate > 0, format.channelCount > 0 else {
+            throw NSError(domain: "Longhand", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "the microphone's format could not be read"])
+        }
+        node.installTap(onBus: 0, bufferSize: 4096, format: format) { buffer, _ in
+            live.feed(buffer)
+        }
+        engine.prepare()
+        try engine.start()
+    }
+
+    func stop() {
+        engine.inputNode.removeTap(onBus: 0)
+        engine.stop()
+    }
+}
 
 /// AVAudioRecorder without the AVAudioSession choreography iOS needs: macOS
 /// has no audio session. AAC m4a into the temp dir, like every capture source.

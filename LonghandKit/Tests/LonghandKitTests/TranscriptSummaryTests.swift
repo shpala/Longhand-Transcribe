@@ -169,3 +169,40 @@ private func words(_ count: Int, prefix: String = "w") -> String {
         #expect(text.contains("We need this by Wednesday."))
     }
 }
+
+/// The title the model writes beside the summary, made fit for a library row.
+@Suite struct SummaryTitleTests {
+
+    @Test func quotesAndAFullStopAreStripped() {
+        #expect(TranscriptSummary.usableTitle("“Budget for the spring launch.”") == "Budget for the spring launch")
+        #expect(TranscriptSummary.usableTitle("  Onboarding copy review ") == "Onboarding copy review")
+    }
+
+    @Test func emptyAndOverlongTitlesAreRefused() {
+        #expect(TranscriptSummary.usableTitle(nil) == nil)
+        #expect(TranscriptSummary.usableTitle("   ") == nil)
+        #expect(TranscriptSummary.usableTitle("\"\"") == nil)
+        let long = String(repeating: "word ", count: 20)
+        #expect(TranscriptSummary.usableTitle(long) == nil)
+    }
+
+    @Test func onlyTheFirstLineIsATitle() {
+        #expect(TranscriptSummary.usableTitle("Design review\nAbout the onboarding screen") == "Design review")
+    }
+
+    @Test func tidyAppliesTheSameRule() {
+        var summary = TranscriptSummary(model: "test", transcriptHash: "x", overview: "o",
+                                        title: "'Weekly sync.'")
+        summary.tidy()
+        #expect(summary.title == "Weekly sync")
+    }
+
+    @Test func aSummaryWrittenBeforeTitlesExistedStillDecodes() throws {
+        let json = """
+        {"version":1,"generatedAt":0,"model":"m","transcriptHash":"h","overview":"o",
+         "keyPoints":[],"decisions":[],"actionItems":[]}
+        """
+        let summary = try JSONDecoder().decode(TranscriptSummary.self, from: Data(json.utf8))
+        #expect(summary.title == nil)
+    }
+}

@@ -116,6 +116,10 @@ struct RecordSheet: View {
                             optionsButton
                         }
                     }
+                    if let live = recorder.livePreview {
+                        LiveTranscriptView(live: live, tint: cream)
+                            .padding(.horizontal, 24)
+                    }
                     if recorder.state == .recording || recorder.state == .paused {
                         noteField
                     }
@@ -191,6 +195,14 @@ struct RecordSheet: View {
         }
         .onAppear {
             LiveRecordingControls.handler = { command in await perform(command) }
+        }
+        // The file records on with the screen off; the preview does not. An
+        // hour of recognition nobody is looking at is an hour of battery.
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+            recorder.setLivePreviewSuspendedByApp(true)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            recorder.setLivePreviewSuspendedByApp(false)
         }
         .onDisappear {
             LiveRecordingControls.handler = nil

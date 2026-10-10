@@ -15,7 +15,17 @@ import LonghandKit
 public nonisolated enum TranscriptSummarizer {
 
     public static let settingsKey = "summarizeAutomatically"
+    /// The Settings toggle under the summary one: let the summary's title
+    /// name a recording that still carries its date stamp.
+    public static let titleSettingsKey = "titleRecordingsFromSummary"
     public static let modelIdentifier = "apple-foundation-models"
+
+    /// **On by default** for the same reasons as the summary: "9 Oct 2026
+    /// at 16:17" says nothing about the recording, and a generated name is
+    /// one rename away from being replaced.
+    public static var namesRecordings: Bool {
+        UserDefaults.standard.object(forKey: titleSettingsKey) as? Bool ?? true
+    }
 
     /// Below this there is nothing to summarise, and the model fills the gap:
     /// a simulator take whose only word was "Papa!" came back as "A man calls
@@ -109,6 +119,8 @@ public nonisolated enum TranscriptSummarizer {
 
     @Generable(description: "A summary of a conversation")
     struct SummaryDraft {
+        @Guide(description: "A title for the conversation of three to six words naming what it was about, in the language of the transcript, with no quotation marks and no full stop; never a generic word like Recording, Conversation or Meeting on its own")
+        var title: String
         @Guide(description: "Two to four sentences saying what the conversation was about and how it ended, in the language of the transcript")
         var overview: String
         @Guide(description: "The most important points, as short bullet points, at most eight")
@@ -134,7 +146,11 @@ public nonisolated enum TranscriptSummarizer {
     /// Throws `LonghandError.summaryUnavailable` with a sentence a person can
     /// read; the framework's own errors are translated here so the UI never
     /// prints a debug description.
-    public static func summarize(_ transcript: LonghandKit.Transcript, title: String) async throws -> TranscriptSummary {
+    /// `title` is the recording's name when a person gave it one, and nil
+    /// when it is only a date stamp: a name in the prompt steers the summary
+    /// and tends to come back as the model's own title, which for "Recording"
+    /// is exactly the word that says nothing.
+    public static func summarize(_ transcript: LonghandKit.Transcript, title: String?) async throws -> TranscriptSummary {
         let availability = availability(for: transcript.language)
         if let explanation = availability.explanation {
             throw LonghandError.summaryUnavailable(reason: explanation)
@@ -166,7 +182,8 @@ public nonisolated enum TranscriptSummarizer {
                                             overview: draft.overview,
                                             keyPoints: draft.keyPoints,
                                             decisions: draft.decisions,
-                                            actionItems: draft.actionItems)
+                                            actionItems: draft.actionItems,
+                                            title: draft.title)
             summary.tidy()
             guard !summary.isEmpty else {
                 throw LonghandError.summaryUnavailable(reason: "The model returned nothing for this transcript.")
@@ -183,26 +200,32 @@ public nonisolated enum TranscriptSummarizer {
         }
     }
 
-    private static func summarizeWhole(_ text: String, title: String) async throws -> SummaryDraft {
+    private static func summarizeWhole(_ text: String, title: String?) async throws -> SummaryDraft {
         let session = LanguageModelSession(instructions: instructions)
         let response = try await session.respond(generating: SummaryDraft.self) {
-            "Summarize this conversation, titled “\(title)”.\n\n\(text)"
+            "Summarize this conversation\(titleClause(title)).\n\n\(text)"
         }
         return response.content
     }
 
+    /// ", titled “x”" or nothing.
+    private static func titleClause(_ title: String?) -> String {
+        guard let title, !title.isEmpty else { return "" }
+        return ", titled “\(title)”"
+    }
+
     private static func notes(for chunk: SummaryChunker.Chunk, index: Int, of total: Int,
-                              title: String) async throws -> ChunkNotes {
+                              title: String?) async throws -> ChunkNotes {
         // A fresh session per chunk: the window must hold the chunk, not the
         // conversation so far.
         let session = LanguageModelSession(instructions: instructions)
         let response = try await session.respond(generating: ChunkNotes.self) {
-            "This is part \(index + 1) of \(total) of a conversation titled “\(title)”, starting at \(TranscriptClock.label(chunk.start)). Take notes on this part only.\n\n\(chunk.text)"
+            "This is part \(index + 1) of \(total) of a conversation\(titleClause(title)), starting at \(TranscriptClock.label(chunk.start)). Take notes on this part only.\n\n\(chunk.text)"
         }
         return response.content
     }
 
-    private static func combine(_ notes: [String], title: String) async throws -> SummaryDraft {
+    private static func combine(_ notes: [String], title: String?) async throws -> SummaryDraft {
         let session = LanguageModelSession(instructions: """
             \(instructions) You are given notes taken on consecutive parts of \
             one conversation. Combine them into one summary of the whole \
@@ -210,7 +233,7 @@ public nonisolated enum TranscriptSummarizer {
             events.
             """)
         let response = try await session.respond(generating: SummaryDraft.self) {
-            "Notes on the conversation “\(title)”, in order:\n\n\(notes.joined(separator: "\n\n"))"
+            "Notes on the conversation\(titleClause(title)), in order:\n\n\(notes.joined(separator: "\n\n"))"
         }
         return response.content
     }

@@ -36,6 +36,15 @@ final class RecorderService {
     /// before it is over.
     private(set) var inputName: String?
     private var capture: TakeCapture?
+    /// The words as they are said, for the languages Apple's recognizer
+    /// covers; nil for the rest, and for a take started under a processing
+    /// hold. Separate from the file: it can fail or stop without the take
+    /// noticing.
+    private var liveTranscriber: LiveTranscriber?
+    var livePreview: LiveTranscript? { liveTranscriber?.output }
+    /// The sheet is not on screen: recognition stops until it is back, the
+    /// file carries on.
+    private var previewSuspendedByApp = false
     private var observers: [NSObjectProtocol] = []
     /// Identifies the current start attempt, so a stop or discard during the
     /// asynchronous hardware open can disown its result.
@@ -191,6 +200,54 @@ final class RecorderService {
         inputName = Self.currentInputName()
         state = .recording
         startSamplingLevel()
+        startLivePreview(for: capture, token: token)
+    }
+
+    // MARK: - Live preview
+
+    /// Starts the preview beside a running capture, when the saved language
+    /// has one. Asset installation and analyzer start-up take their time off
+    /// this actor; buffers arrive meanwhile and are dropped until it listens.
+    private func startLivePreview(for capture: TakeCapture, token: UInt64) {
+        liveTranscriber = nil
+        previewSuspendedByApp = false
+        guard LiveTranscriber.isEnabled, ProcessingHold.current() == nil else { return }
+        let setting = UITestSupport.livePreviewLanguageOverride
+            ?? UserDefaults.standard.string(forKey: "defaultImportLanguage")
+            ?? TranscriptionLanguages.systemSentinel
+        Task {
+            guard let live = await LiveTranscriber.make(forLanguageSetting: setting) else { return }
+            // The take may have ended while the locales were being read.
+            guard token == startToken, self.capture === capture else { return }
+            liveTranscriber = live
+            capture.onBuffer = { buffer in live.feed(buffer) }
+            updateLiveSuspension()
+            await live.start()
+        }
+    }
+
+    /// Recognition pauses whenever the take does, and while the app is away.
+    private func updateLiveSuspension() {
+        liveTranscriber?.setSuspended(previewSuspendedByApp || state != .recording)
+    }
+
+    /// From the sheet, on the app going to the background and coming back.
+    func setLivePreviewSuspendedByApp(_ suspended: Bool) {
+        previewSuspendedByApp = suspended
+        updateLiveSuspension()
+    }
+
+    /// Lets the recognizer settle what it heard, or drops it. Never waited
+    /// on: the take is over either way.
+    private func endLivePreview(settling: Bool) {
+        guard let live = liveTranscriber else { return }
+        liveTranscriber = nil
+        capture?.onBuffer = nil
+        if settling {
+            Task { await live.finish() }
+        } else {
+            live.cancel()
+        }
     }
 
     private struct StartOutcome: @unchecked Sendable {
@@ -233,6 +290,7 @@ final class RecorderService {
     func reset() {
         guard state != .recording else { return }
         startToken &+= 1
+        endLivePreview(settling: false)
         if let capture {
             Self.audioQueue.async { _ = capture.finish() }
         }
@@ -262,6 +320,7 @@ final class RecorderService {
         guard state == .recording else { return }
         capture?.setPaused(true)
         state = .paused
+        updateLiveSuspension()
     }
 
     /// Async for the same reason as `start()`: after an interruption the
@@ -282,6 +341,7 @@ final class RecorderService {
         isInterrupted = false
         inputName = Self.currentInputName()
         state = .recording
+        updateLiveSuspension()
     }
 
     /// Something ended the take that the user did not: the file keeps what
@@ -293,6 +353,7 @@ final class RecorderService {
         isInterrupted = false
         lastError = reason
         state = .paused
+        updateLiveSuspension()
     }
 
     // MARK: - Session events
@@ -322,6 +383,7 @@ final class RecorderService {
                     self.capture?.setPaused(true)
                     self.isInterrupted = true
                     self.state = .paused
+                    self.updateLiveSuspension()
                 case .ended:
                     // Only when the system says we may: a call still in
                     // progress must not silently start recording.
@@ -389,6 +451,7 @@ final class RecorderService {
     func stop() async -> URL? {
         guard state == .recording || state == .paused, let capture else { return nil }
         startToken &+= 1
+        endLivePreview(settling: true)
         finishedDuration = capture.recordedSeconds
         self.capture = nil
         state = .finished
@@ -412,6 +475,7 @@ final class RecorderService {
     /// not wait on mediaserverd.
     func discard() {
         startToken &+= 1
+        endLivePreview(settling: false)
         let capture = self.capture
         let url = fileURL
         self.capture = nil
@@ -630,6 +694,10 @@ nonisolated final class TakeCapture: @unchecked Sendable {
 
     /// Called once, from the audio thread, when the writer refuses a buffer.
     var onFailure: (@Sendable (String) -> Void)?
+    /// Every buffer that reaches the file, in the hardware's format, on the
+    /// audio thread, for the live preview. Nothing while paused: a preview
+    /// of audio the take does not keep would mislead.
+    var onBuffer: (@Sendable (AVAudioPCMBuffer) -> Void)?
 
     static let sampleRate = 48_000.0
     /// How much a kill can cost: everything after the last fragment written.
@@ -779,6 +847,7 @@ nonisolated final class TakeCapture: @unchecked Sendable {
         let position = frames
         lock.unlock()
         guard !skip, buffer.frameLength > 0 else { return }
+        onBuffer?(buffer)
 
         guard let converted = convert(buffer) else { return }
         guard input.isReadyForMoreMediaData else { return }   // a hiccup: drop, never block the audio thread

@@ -111,6 +111,24 @@ public struct JobRecord: Codable, Sendable, Equatable, Identifiable {
     /// How many runs contributed time. Nil on a record written before this
     /// existed, and 1 for the overwhelmingly common single-run job.
     public var processingRuns: Int?
+    /// Where the title came from, when it was not a person. A take recorded
+    /// without a calendar event is named after its date, which is a
+    /// placeholder; a summary may replace it with a name for what was said.
+    /// A title a person typed, an imported file's own name, and a calendar
+    /// event's name are all nil here and never replaced. Optional so existing
+    /// `job.json` files keep decoding.
+    public var titleOrigin: TitleOrigin?
+
+    public enum TitleOrigin: String, Codable, Sendable {
+        /// The date stamp a take gets when nothing better is known.
+        case placeholder
+        /// Written by the on-device model from the transcript.
+        case generated
+    }
+
+    /// Whether a model may name this recording: only a placeholder or an
+    /// earlier generated title gives way, never a person's choice.
+    public var acceptsGeneratedTitle: Bool { titleOrigin != nil }
 
     public init(id: UUID, title: String, createdAt: Date, state: JobState,
                 lastCheckpointState: JobState, duration: TimeInterval? = nil,
@@ -164,6 +182,7 @@ public struct JobRecord: Codable, Sendable, Equatable, Identifiable {
     public func mergingUserFields(from other: JobRecord) -> JobRecord {
         var merged = self
         merged.title = other.title
+        merged.titleOrigin = other.titleOrigin
         merged.pausedByUser = other.pausedByUser
         return merged
     }

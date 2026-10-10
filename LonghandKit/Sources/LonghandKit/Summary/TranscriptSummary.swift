@@ -30,6 +30,11 @@ public struct TranscriptSummary: Codable, Sendable, Equatable {
     public var keyPoints: [String]
     public var decisions: [String]
     public var actionItems: [String]
+    /// A few words naming what the conversation was about, written in the
+    /// same pass as the summary. Offered as the recording's title when the
+    /// recording still has its date-stamp placeholder. Nil on a summary
+    /// written before titles existed.
+    public var title: String?
     /// Set once a person has changed the text, so regeneration can warn
     /// before overwriting it.
     public var editedAt: Date?
@@ -42,6 +47,7 @@ public struct TranscriptSummary: Codable, Sendable, Equatable {
                 keyPoints: [String] = [],
                 decisions: [String] = [],
                 actionItems: [String] = [],
+                title: String? = nil,
                 editedAt: Date? = nil) {
         self.version = version
         self.generatedAt = generatedAt
@@ -51,8 +57,27 @@ public struct TranscriptSummary: Codable, Sendable, Equatable {
         self.keyPoints = keyPoints
         self.decisions = decisions
         self.actionItems = actionItems
+        self.title = title
         self.editedAt = editedAt
     }
+
+    /// A title fit for a library row, or nil: the model's wording trimmed of
+    /// the quotes and trailing full stop it likes to add, cut at a sensible
+    /// length, and refused when it is empty or longer than a title should be.
+    public static func usableTitle(_ raw: String?) -> String? {
+        guard var text = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else { return nil }
+        let quotes = CharacterSet(charactersIn: "\"'“”‘’«»")
+        text = text.trimmingCharacters(in: quotes)
+        while let last = text.last, last == "." || last == "。" { text.removeLast() }
+        text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        // One line: a model that answers with a sentence and a sub-clause
+        // gives a title that wraps three rows deep.
+        if let newline = text.firstIndex(where: \.isNewline) { text = String(text[..<newline]) }
+        guard !text.isEmpty, text.count <= maximumTitleLength else { return nil }
+        return text
+    }
+
+    public static let maximumTitleLength = 60
 
     public var isEdited: Bool { editedAt != nil }
 
@@ -149,6 +174,7 @@ public struct TranscriptSummary: Codable, Sendable, Equatable {
         keyPoints = Self.cleaned(keyPoints)
         decisions = Self.cleaned(decisions)
         actionItems = Self.cleaned(actionItems)
+        title = Self.usableTitle(title)
     }
 }
 

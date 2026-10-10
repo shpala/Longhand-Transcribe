@@ -31,9 +31,9 @@ public final class TranscriptionLanguages {
 
     /// "No declaration; route on the device's own language". A string because
     /// it is an `@AppStorage` value in both shells.
-    public static let systemSentinel = "system"
+    nonisolated public static let systemSentinel = "system"
     /// §4.2's mixed-language sentinel: WhisperKit with per-window detection.
-    public static let mixedSentinel = JobPipeline.autoDetectLanguage
+    nonisolated public static let mixedSentinel = JobPipeline.autoDetectLanguage
 
     /// Read from the framework rather than hardcoded, so it cannot go stale
     /// when Apple adds one. Empty until `load()` has run.

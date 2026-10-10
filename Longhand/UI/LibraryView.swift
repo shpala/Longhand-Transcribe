@@ -1180,6 +1180,8 @@ private struct SettingsSheet: View {
     @AppStorage(LocationCapture.settingsKey) private var captureLocation = false
     @AppStorage(CalendarContext.settingsKey) private var useCalendar = false
     @AppStorage(TranscriptSummarizer.settingsKey) private var summarize = true
+    @AppStorage(TranscriptSummarizer.titleSettingsKey) private var nameFromSummary = true
+    @AppStorage(LiveTranscriber.settingsKey) private var livePreview = true
     @AppStorage(ProcessingHold.lowPowerKey) private var pauseInLowPower = true
     @AppStorage(SpotlightIndex.settingsKey) private var indexInSpotlight = true
     /// Read once per appearance: the answer involves a system query.
@@ -1213,16 +1215,27 @@ private struct SettingsSheet: View {
                     Text("Off by default. A recording made during a calendar event takes the event's name, and the event's attendees are offered when you name a speaker. Longhand reads your calendar only when a recording starts, never writes to it, and keeps the event with the recording on this device.")
                 }
                 Section {
+                    Toggle("Show words while recording", isOn: $livePreview)
+                        .accessibilityIdentifier("settings-live-preview")
+                } header: {
+                    Text("Recording")
+                } footer: {
+                    Text("Shows what the microphone hears as it is said, for the languages Apple's speech recognition covers. A preview only: the transcript, with speakers, is made from the whole recording afterwards. Recognition pauses while Longhand is in the background; the recording does not.")
+                }
+                Section {
                     Toggle("Summarize new transcripts", isOn: $summarize)
                         .disabled(!summaryAvailability.isAvailable)
                         .accessibilityIdentifier("settings-summaries")
+                    Toggle("Name recordings from the summary", isOn: $nameFromSummary)
+                        .disabled(!summaryAvailability.isAvailable || !summarize)
+                        .accessibilityIdentifier("settings-summary-titles")
                 } header: {
                     Text("Summaries")
                 } footer: {
                     if let reason = summaryAvailability.explanation {
                         Text(reason)
                     } else {
-                        Text("Apple's on-device model writes a short summary with key points, decisions and action items when a transcript finishes. Nothing leaves this device. Only languages the model speaks are summarized; any transcript can be summarized later from its own screen.")
+                        Text("Apple's on-device model writes a short summary with key points, decisions and action items when a transcript finishes. Nothing leaves this device. Only languages the model speaks are summarized; any transcript can be summarized later from its own screen. A recording still named after its date takes the summary's title; a name you typed, a file's own name and a calendar event's name are kept.")
                     }
                 }
                 Section {

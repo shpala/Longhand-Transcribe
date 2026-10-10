@@ -468,6 +468,16 @@ Useless for agents; nothing to observe programmatically.
   speaker into the mic yields ~-36 dBFS mush; WhisperKit returns ZERO segments
   (immediate endoftext) on degraded audio rather than erroring. Use
   `--uitest-synth-import` for any test that asserts transcript content.
+- **The live preview on the record sheet never appears on a simulator**, for
+  the same reason as the next item: no locales, so `LiveTranscriber.make`
+  returns nil and the sheet looks exactly as it did before the feature.
+  `LonghandUITests/LivePreviewUITests` runs on the device only, and
+  **skips when the phone is in Low Power Mode or hot**, because the app
+  holds the preview back then, as it holds the pipeline. Three green runs
+  followed by two "caption never appeared" failures on 10 Oct 2026 were the
+  battery crossing 20% and the owner accepting the Low Power prompt, not a
+  regression. The test launches with `--uitest-live-language en` because the
+  owner's saved default is Russian, which has no preview.
 - **Simulators have no Apple speech and no diarization.**
   `SpeechTranscriber.supportedLocales` is empty, so ASR routes to WhisperKit
   (626 MB download into the sim container on first use, ~2 min). SpeakerKit

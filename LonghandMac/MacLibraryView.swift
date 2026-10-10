@@ -598,6 +598,13 @@ struct MacRecordSheet: View {
     /// Fixed once: `.now` here would be re-evaluated on every body pass, so
     /// each state change would restart the timer's schedule.
     @State private var timerAnchor = Date()
+    /// The words as they are said, for the languages Apple's recognizer
+    /// covers. Owned here rather than by the recorder: the recorder is an
+    /// `AVAudioRecorder` with no buffers to share, so the preview listens
+    /// through its own engine, and the sheet is what knows when to stop it.
+    @State private var liveTranscriber: LiveTranscriber?
+    @State private var previewInput: MacPreviewInput?
+    @AppStorage("defaultImportLanguage") private var declaredLanguage = "system"
     private let cream = Color("LonghandCream")
     @ScaledMetric(relativeTo: .largeTitle) private var timerFontSize: CGFloat = 44
 
@@ -641,6 +648,10 @@ struct MacRecordSheet: View {
                     .frame(height: 52)
                     .padding(.horizontal, 24)
                     .opacity(recorder.state == .paused ? 0.35 : 1)
+                if let live = liveTranscriber?.output {
+                    LiveTranscriptView(live: live, tint: cream)
+                        .padding(.horizontal, 24)
+                }
                 // A note typed now lands at this moment in the transcript.
                 TextField("Add a note at this moment", text: $noteText)
                     .textFieldStyle(.roundedBorder)
@@ -650,6 +661,7 @@ struct MacRecordSheet: View {
                 HStack(spacing: 24) {
                     Button(recorder.state == .paused ? "Resume" : "Pause") {
                         if recorder.state == .recording { recorder.pause() } else { recorder.resume() }
+                        liveTranscriber?.setSuspended(recorder.state != .recording)
                     }
                     .tint(cream)
                     // Safe while paused: `currentTime` freezes at the pause
@@ -659,6 +671,7 @@ struct MacRecordSheet: View {
                         .disabled(!isCapturing)
                     Button {
                         addNote()
+                        endLivePreview(settling: true)
                         if let url = recorder.stop() { onSave(url, details) }
                     } label: {
                         Label("Stop & Save", systemImage: "stop.circle.fill")
@@ -668,6 +681,7 @@ struct MacRecordSheet: View {
                 // Labelled as ending the take, because it does.
                 Button {
                     addNote()
+                    endLivePreview(settling: true)
                     if let url = recorder.stop() {
                         onSaveWithOptions(url, details)
                     }
@@ -682,6 +696,7 @@ struct MacRecordSheet: View {
                 if isCapturing && recorder.currentTime > 0 {
                     showDiscardConfirm = true
                 } else {
+                    endLivePreview(settling: false)
                     recorder.discard()
                     onCancel()
                 }
@@ -690,13 +705,15 @@ struct MacRecordSheet: View {
             .foregroundStyle(cream.opacity(0.6))
         }
         .padding(32)
-        .frame(width: 420, height: 340)
+        // Taller with a preview to show; the window follows the sheet.
+        .frame(width: 420, height: liveTranscriber == nil ? 340 : 500)
         .background(Color("LonghandIndigo"))
         .environment(\.colorScheme, .dark)
         .confirmationDialog("Discard this recording?",
                             isPresented: $showDiscardConfirm,
                             titleVisibility: .visible) {
             Button("Discard Recording", role: .destructive) {
+                endLivePreview(settling: false)
                 recorder.discard()
                 onCancel()
             }
@@ -712,10 +729,14 @@ struct MacRecordSheet: View {
         .onAppear {
             LiveRecordingControls.handler = { command in perform(command) }
         }
-        .onDisappear { LiveRecordingControls.handler = nil }
+        .onDisappear {
+            LiveRecordingControls.handler = nil
+            endLivePreview(settling: false)
+        }
         .task {
             if await MacRecorderService.requestPermission() {
                 recorder.start()
+                startLivePreview()
                 if CalendarContext.isEnabled {
                     calendarEvent = await CalendarContext.current()
                 }
@@ -730,6 +751,37 @@ struct MacRecordSheet: View {
 
     private var isCapturing: Bool {
         recorder.state == .recording || recorder.state == .paused
+    }
+
+    /// Beside the recorder, never ahead of it: a preview that cannot start
+    /// leaves the take alone and says nothing.
+    private func startLivePreview() {
+        guard recorder.state == .recording, LiveTranscriber.isEnabled, ProcessingHold.current() == nil else { return }
+        let setting = declaredLanguage
+        Task {
+            guard let live = await LiveTranscriber.make(forLanguageSetting: setting) else { return }
+            guard isCapturing, liveTranscriber == nil else { return }
+            do {
+                previewInput = try MacPreviewInput(feeding: live)
+            } catch {
+                return
+            }
+            liveTranscriber = live
+            live.setSuspended(recorder.state != .recording)
+            await live.start()
+        }
+    }
+
+    private func endLivePreview(settling: Bool) {
+        previewInput?.stop()
+        previewInput = nil
+        guard let live = liveTranscriber else { return }
+        liveTranscriber = nil
+        if settling {
+            Task { await live.finish() }
+        } else {
+            live.cancel()
+        }
     }
 
     private var details: TakeDetails {
@@ -755,11 +807,16 @@ struct MacRecordSheet: View {
     /// The same as the sheet's own buttons, for Siri and Shortcuts.
     private func perform(_ command: LiveRecordingCommand) {
         switch command {
-        case .pause: if recorder.state == .recording { recorder.pause() }
-        case .resume: if recorder.state == .paused { recorder.resume() }
+        case .pause:
+            if recorder.state == .recording { recorder.pause() }
+            liveTranscriber?.setSuspended(true)
+        case .resume:
+            if recorder.state == .paused { recorder.resume() }
+            liveTranscriber?.setSuspended(recorder.state != .recording)
         case .mark: if isCapturing { markers.append(Transcript.Marker(time: recorder.currentTime)) }
         case .stop:
             addNote()
+            endLivePreview(settling: true)
             if let url = recorder.stop() { onSave(url, details) }
         }
     }

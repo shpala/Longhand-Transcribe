@@ -116,6 +116,8 @@ speaker names confirmed and a few turns corrected, settles both at once.
 | Notes while recording (addition) | text field on the iOS and Mac record sheets → labelled `Transcript.Marker` → `TakeSidecar` → overlay | a note is a marker with a label, drawn among the words it was typed over; see "Notes while recording, summaries, calendar titles" below |
 | Summaries (addition) | `LonghandKit/Sources/LonghandKit/Summary/TranscriptSummary.swift` (+`SummaryChunker`), `LonghandEngines/Sources/LonghandEngines/TranscriptSummarizer.swift`, `SummaryViews.swift`, `summary.json` | Apple's on-device model through the Foundation Models framework; chunked over the model's window; cached beside the transcript, led into the Markdown export, labelled stale after a correction, deleted by a re-transcribe; languages the model does not speak are refused with a reason |
 | Calendar titles (addition) | `LonghandEngines/Sources/LonghandEngines/CalendarContext.swift`, `ImportMetadata.calendarEvent`, rename sheets | off by default; the event in progress names the take and its attendees are offered when naming a speaker; metadata.json only, never exported; iOS only |
+| Live preview while recording (addition) | `LonghandEngines/Sources/LonghandEngines/LiveTranscriber.swift` (+`LiveTranscriptView`), `LonghandKit/.../Models/LiveTranscriptText.swift`, `TakeCapture.onBuffer`, `MacPreviewInput` | Apple's `SpeechTranscriber` streaming with volatile results, for its languages only; a preview, never a checkpoint, overlay or export; suspended in the background and while paused; see "Words as they are said, and names from the summary" below |
+| Generated titles (addition) | `JobRecord.titleOrigin`, `TranscriptSummary.title`, `JobStore.applyGeneratedTitle`, `TranscriptSummarizer.SummaryDraft.title` | the summary's title replaces a date-stamp placeholder and nothing a person, a file or a calendar named; a rename ends it; toggle under Summaries |
 | Stop notification (addition) | `Longhand/Audio/TakeNotifier.swift` | a time-sensitive local notification when a take is interrupted or halts with the app not in front |
 | Low Power and thermal hold (addition) | `LonghandEngines/Sources/LonghandEngines/ProcessingHold.swift`, `JobLibraryModel.apply(hold:)` | jobs stop at the next checkpoint and resume when the condition lifts; rows say which |
 | Per-word tap-to-seek (addition) | `LonghandEngines/Sources/LonghandEngines/WordTapText.swift` (`WordFrameRenderer`, `WordFrames`) | words stay in one `Text` so SwiftUI keeps bidi reordering intact; the renderer reports each word's frame and also draws the active word's wash |
@@ -1669,3 +1671,67 @@ Command-W closes the window with New Recording and Import still enabled,
 and Window > Longhand Library brings it back. It needs the display awake
 and the screen unlocked: a locked screen gives the app no windows at all,
 which reads as the app failing to open one.
+
+## Words as they are said, and names from the summary (10 Oct 2026)
+
+Two additions from the post-release proposal: the first thing a person sees
+while recording, and the first thing they see in the library afterwards.
+
+**Live preview.** `LiveTranscriber` (LonghandEngines) runs Apple's
+`SpeechTranscriber` with `.volatileResults` behind a `SpeechAnalyzer` fed from
+an `AsyncStream<AnalyzerInput>`. On iOS the stream is filled from
+`TakeCapture.onBuffer`, a second consumer of the same input tap that writes
+the file, called only for buffers the file keeps (never while paused); on the
+Mac, where `AVAudioRecorder` exposes no buffers, `MacPreviewInput` opens its
+own `AVAudioEngine` on the input device beside the recorder, which macOS
+allows. The buffer is converted to the analyzer's format on the audio thread
+and queued with `.bufferingNewest(64)`: a recognizer that falls behind loses
+old audio from the preview and never stalls the thread that writes the take.
+`LiveTranscriptText` (LonghandKit, tested) is the assembly rule: provisional
+results replace each other, a final result is appended and clears the guess,
+and the settled text is capped at 400 words. `LiveTranscript` is the
+`@Observable` the sheets read, published at most every 300 ms (1 s under UI
+tests, for the usual quiescence reason). The locale is resolved from the
+saved transcription default through the same `AppleSpeechEngine.resolveLocale`
+the final pass uses, so the preview and the transcript agree on the dialect;
+"auto", a Whisper language, a simulator (no locales) and a take started under
+a `ProcessingHold` get no preview and no apology. Missing assets are
+installed while the take records, with the sheet saying "Preparing live
+preview…" meanwhile, and the preview starts from there; the take never
+waits. The view shows the newest forty words, sized by the text: a box that
+reserved its full height sat mostly empty on the phone. The preview is suspended, not stopped, while paused, interrupted,
+halted, or with the app in the background (iOS `didEnterBackground`): the
+file records on with the screen off, the recognizer does not, since an hour of
+recognition nobody is looking at is an hour of battery. Stop & Save lets the
+recognizer settle its last guess in a detached task nobody waits for; Discard
+cancels it. The preview is text on the sheet and nothing else: it reaches no
+checkpoint, no overlay and no export, and the transcript is still made from
+the whole file with speakers. Whisper cannot do this (a thirty-second window,
+not a stream), so Hebrew and Russian takes record exactly as before; a
+streaming transducer trained for them would plug in through the same
+`feed`/`results` shape if one is ever built. Settings: "Show words while
+recording", on by default, both shells. Verified on the phone by
+`LivePreviewUITests` (device only; a simulator has no locales), which checks
+the sheet reaches "Live preview · English" and discards the take.
+
+**Generated titles.** `TranscriptSummarizer.SummaryDraft` gained a `title`
+(three to six words, no quotes, no full stop, in the transcript's language),
+written in the same generation as the summary and stored as
+`TranscriptSummary.title`. Whether it may name the recording is the record's
+business: `JobRecord.titleOrigin` is `.placeholder` for a take whose title is
+the date stamp (`ImportService` sets it when a take arrives with no calendar
+event), `.generated` once a summary named it, and nil for everything a person
+chose, which `JobStore.rename` enforces by clearing it. `JobStore.applyGeneratedTitle`
+is the same read-modify-write as `rename`, read as late as possible so a rename
+landing during the model's seconds of work wins, and it accepts only what
+`TranscriptSummary.usableTitle` lets through (quotes and the trailing full
+stop stripped, first line only, at most 60 characters). `JobLibraryModel.summarize`
+applies it before the rerender so the exports carry the new name, and the
+usual refresh re-indexes Spotlight and republishes the widget, both keyed on
+the title. The prompt gets "Recording" rather than the placeholder, since a
+date in the prompt tends to come back in the title. The origin rides with the
+title through `mergingUserFields`, so a pipeline run holding the record in
+memory does not revert a generated name. Settings: "Name recordings from the
+summary", under the summary toggle, on by default, both shells.
+`SummaryTitleModelTests` asks the real model on a Mac with Apple
+Intelligence and skips elsewhere.

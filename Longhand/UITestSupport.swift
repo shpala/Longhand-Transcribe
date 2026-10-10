@@ -18,6 +18,16 @@ nonisolated enum UITestSupport {
     static var isUITestRun: Bool {
         ProcessInfo.processInfo.arguments.contains { $0.hasPrefix("--uitest-") }
     }
+
+    /// `--uitest-live-language <code>`: the language the live preview should
+    /// use for this launch only, instead of the saved transcription default.
+    /// A device test cannot reset the owner's settings, and the owner's
+    /// default may well be a language with no preview.
+    static var livePreviewLanguageOverride: String? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let index = args.firstIndex(of: "--uitest-live-language"), index + 1 < args.count else { return nil }
+        return args[index + 1]
+    }
 }
 
 #if DEBUG

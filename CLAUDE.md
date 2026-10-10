@@ -153,7 +153,15 @@ Three layers with hard boundaries:
   framework, `TranscriptSummarizer`) into `summary.json`: not a checkpoint,
   not overlay content, read by `writeAll` into the Markdown only, labelled
   stale after a correction, deleted by a re-transcribe, and refused up front
-  for languages the model does not speak. Calendar titles (`CalendarContext`,
+  for languages the model does not speak. The summary also carries a title,
+  which `JobStore.applyGeneratedTitle` gives to a recording whose
+  `JobRecord.titleOrigin` is a placeholder or an earlier generated name,
+  never to one a person, a file or a calendar named (`rename` clears the
+  origin). While a take records, `LiveTranscriber` (both shells) streams
+  Apple's recognizer for its languages into `LiveTranscriptView` on the
+  record sheet: a preview that reaches no checkpoint, overlay or export, fed
+  from `TakeCapture.onBuffer` on iOS and from `MacPreviewInput`'s own engine
+  on the Mac, suspended while paused or in the background. Calendar titles (`CalendarContext`,
   off by default) and the attendee names live in `metadata.json` beside the
   location, under the same never-exported rule. `ProcessingHold` stops the
   pipeline in Low Power Mode or at a serious thermal state and

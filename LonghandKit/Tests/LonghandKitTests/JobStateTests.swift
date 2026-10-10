@@ -141,3 +141,46 @@ import Testing
         #expect(PipelineProgress(stage: .transcribing, fraction: 0.4, isDeterminate: true).isDeterminate)
     }
 }
+
+/// A title the model wrote may replace a date stamp and nothing else.
+@Suite struct TitleOriginTests {
+
+    private func record(origin: JobRecord.TitleOrigin?) -> JobRecord {
+        var record = JobRecord(id: UUID(), title: "9 Oct 2026 at 16:17", createdAt: Date(),
+                               state: .complete, lastCheckpointState: .complete)
+        record.titleOrigin = origin
+        return record
+    }
+
+    @Test func aRecordWrittenBeforeOriginsExistedIsAPersonsTitle() throws {
+        let json = """
+        {"id":"7E2D2E3A-6E4B-4B19-9C7A-2A5B8C1D0E11","title":"Design review","createdAt":0,
+         "state":"COMPLETE","lastCheckpointState":"COMPLETE","degradations":[]}
+        """
+        let record = try JSONDecoder().decode(JobRecord.self, from: Data(json.utf8))
+        #expect(record.titleOrigin == nil)
+        #expect(!record.acceptsGeneratedTitle)
+    }
+
+    @Test func placeholdersAndGeneratedTitlesGiveWay() {
+        #expect(record(origin: .placeholder).acceptsGeneratedTitle)
+        #expect(record(origin: .generated).acceptsGeneratedTitle)
+        #expect(!record(origin: nil).acceptsGeneratedTitle)
+    }
+
+    @Test func theOriginRidesWithTheTitleThroughAMerge() {
+        let inMemory = record(origin: .placeholder)
+        var onDisk = inMemory
+        onDisk.title = "Budget for the spring launch"
+        onDisk.titleOrigin = .generated
+        let merged = inMemory.mergingUserFields(from: onDisk)
+        #expect(merged.title == "Budget for the spring launch")
+        #expect(merged.titleOrigin == .generated)
+    }
+
+    @Test func theOriginRoundTripsThroughJSON() throws {
+        let data = try JSONEncoder().encode(record(origin: .generated))
+        let back = try JSONDecoder().decode(JobRecord.self, from: data)
+        #expect(back.titleOrigin == .generated)
+    }
+}

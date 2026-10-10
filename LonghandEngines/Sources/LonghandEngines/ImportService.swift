@@ -129,6 +129,12 @@ public nonisolated enum ImportService {
                                state: .imported,
                                lastCheckpointState: .imported,
                                language: declaredLanguage)
+        // A take recorded outside any calendar event is named after its date,
+        // and that name is a placeholder the summary may replace. A file's
+        // own name and a calendar event's name are kept: someone chose them.
+        if title != nil, (calendarEvent?.title.trimmingCharacters(in: .whitespaces) ?? "").isEmpty {
+            record.titleOrigin = .placeholder
+        }
         try AtomicFile.writeJSON(record, to: files.job)
         // From here the job owns its folder, and a later failure is recorded on
         // it rather than deleted.

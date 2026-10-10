@@ -338,6 +338,8 @@ struct MacSettingsView: View {
     @AppStorage(CalendarContext.settingsKey) private var useCalendar = false
     @AppStorage(SpotlightIndex.settingsKey) private var indexInSpotlight = true
     @AppStorage(TranscriptSummarizer.settingsKey) private var summarize = true
+    @AppStorage(TranscriptSummarizer.titleSettingsKey) private var nameFromSummary = true
+    @AppStorage(LiveTranscriber.settingsKey) private var livePreview = true
     @AppStorage(ProcessingHold.lowPowerKey) private var pauseInLowPower = true
     @State private var diskUsage: Int64 = 0
     @State private var leftoverBytes: Int64 = 0
@@ -363,10 +365,15 @@ struct MacSettingsView: View {
                     }
                 Text("Recordings and the words in their transcripts appear in Spotlight. The index stays on this Mac; turning this off removes it.")
                     .font(.footnote).foregroundStyle(.secondary)
+                Toggle("Show words while recording", isOn: $livePreview)
+                Text("Shows what the microphone hears as it is said, for the languages Apple's speech recognition covers. A preview only: the transcript, with speakers, is made from the whole recording afterwards.")
+                    .font(.footnote).foregroundStyle(.secondary)
                 Toggle("Summarize new transcripts", isOn: $summarize)
                     .disabled(!summaryAvailability.isAvailable)
+                Toggle("Name recordings from the summary", isOn: $nameFromSummary)
+                    .disabled(!summaryAvailability.isAvailable || !summarize)
                 Text(summaryAvailability.explanation
-                     ?? "Apple's on-device model writes a short summary with key points, decisions and action items when a transcript finishes. Nothing leaves this Mac. Only languages the model speaks are summarized.")
+                     ?? "Apple's on-device model writes a short summary with key points, decisions and action items when a transcript finishes. Nothing leaves this Mac. Only languages the model speaks are summarized. A recording still named after its date takes the summary's title; a name you typed, a file's own name and a calendar event's name are kept.")
                     .font(.footnote).foregroundStyle(.secondary)
                 Toggle("Pause transcription in Low Power Mode", isOn: $pauseInLowPower)
                     .onChange(of: pauseInLowPower) { _, _ in
