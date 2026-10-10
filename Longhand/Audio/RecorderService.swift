@@ -201,6 +201,12 @@ final class RecorderService {
         state = .recording
         startSamplingLevel()
         startLivePreview(for: capture, token: token)
+        // A take in a Whisper language is a transcription a few minutes from
+        // now; loading the model meanwhile is what makes Stop & Save start
+        // transcribing at once.
+        let setting = UserDefaults.standard.string(forKey: "defaultImportLanguage")
+            ?? TranscriptionLanguages.systemSentinel
+        WhisperKitEngine.prewarm(variant: WhisperModelVariant.current, forLanguageSetting: setting)
     }
 
     // MARK: - Live preview

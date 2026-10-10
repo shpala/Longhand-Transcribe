@@ -137,7 +137,9 @@ public nonisolated final class LiveTranscriber: @unchecked Sendable {
     public func start() async {
         do {
             let status = await AssetInventory.status(forModules: [transcriber])
-            Self.log.info("assets \(String(describing: status), privacy: .public) for \(self.locale.identifier, privacy: .public)")
+            let reserved = await AssetInventory.reservedLocales.map(\.identifier).joined(separator: " ")
+            Self.log.info("assets \(String(describing: status), privacy: .public) for \(self.locale.identifier, privacy: .public); reserved: \(reserved, privacy: .public)")
+            await AppleSpeechEngine.makeRoom(for: locale)
             if let request = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
                 Self.log.info("installing recognizer assets")
                 try await request.downloadAndInstall()
@@ -212,9 +214,21 @@ public nonisolated final class LiveTranscriber: @unchecked Sendable {
         guard !wasFinished else { return }
         continuation?.finish()
         if let analyzer {
-            try? await analyzer.finalizeAndFinishThroughEndOfInput()
+            // Bounded: a recognizer that will not finalize is cancelled
+            // instead, so its locale allocation is given back either way.
+            let finalized = await Self.within(.seconds(5)) {
+                try? await analyzer.finalizeAndFinishThroughEndOfInput()
+            }
+            if !finalized {
+                Self.log.warning("the recognizer did not finalize in time; cancelling")
+                await analyzer.cancelAndFinishNow()
+            }
         }
-        _ = await collector?.value
+        if let collector {
+            let drained = await Self.within(.seconds(3)) { _ = await collector.value }
+            if !drained { collector.cancel() }
+        }
+        lock.withLock { self.analyzer = nil }
         let final = lock.withLock {
             text.settle()
             return text
@@ -238,6 +252,7 @@ public nonisolated final class LiveTranscriber: @unchecked Sendable {
         if let analyzer {
             Task { await analyzer.cancelAndFinishNow() }
         }
+        lock.withLock { self.analyzer = nil }
     }
 
     // MARK: - Results
@@ -267,6 +282,17 @@ public nonisolated final class LiveTranscriber: @unchecked Sendable {
             return
         } catch {
             await publish(status: .failed(Self.describe(error)))
+        }
+    }
+
+    /// Runs `work` and reports whether it finished inside `limit`.
+    private static func within(_ limit: Duration, _ work: @escaping @Sendable () async -> Void) async -> Bool {
+        await withTaskGroup(of: Bool.self) { group in
+            group.addTask { await work(); return true }
+            group.addTask { try? await Task.sleep(for: limit); return false }
+            let first = await group.next() ?? false
+            group.cancelAll()
+            return first
         }
     }
 

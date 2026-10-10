@@ -737,6 +737,7 @@ struct MacRecordSheet: View {
             if await MacRecorderService.requestPermission() {
                 recorder.start()
                 startLivePreview()
+                WhisperKitEngine.prewarm(variant: WhisperModelVariant.current, forLanguageSetting: declaredLanguage)
                 if CalendarContext.isEnabled {
                     calendarEvent = await CalendarContext.current()
                 }

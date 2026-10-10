@@ -43,6 +43,7 @@ public nonisolated final class AppleSpeechEngine: SpeechTranscribing {
         // OS-managed asset download; refuses to run without assets rather than
         // degrading (§13.3 integrity posture is Apple's to enforce here).
         do {
+            await Self.makeRoom(for: locale)
             if let request = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
                 // Distinguish the one-time download from transcription so a
                 // first run doesn't read as a hang (§14.2 honesty, in the UI),
@@ -112,10 +113,15 @@ public nonisolated final class AppleSpeechEngine: SpeechTranscribing {
                 await analyzer.cancelAndFinishNow()
             }
         } catch let error as LonghandError {
+            // Finished on every path: an analyzer left mid-flight keeps its
+            // locale allocation, and the framework allows five per process.
+            // A job retried a few times after an interruption ran out.
             collector.cancel()
+            await analyzer.cancelAndFinishNow()
             throw error
         } catch {
             collector.cancel()
+            await analyzer.cancelAndFinishNow()
             throw LonghandError.decodeFailed(reason: "SpeechAnalyzer failed for \(locale.identifier): \(error.localizedDescription)")
         }
 
@@ -142,6 +148,19 @@ public nonisolated final class AppleSpeechEngine: SpeechTranscribing {
             throw LonghandError.engineUnavailable(engine: Self.engineID, language: code)
         }
         return locale
+    }
+
+    /// The framework keeps a per-app list of reserved locales, five at most,
+    /// and refuses to install assets for a sixth. This app needs one or two.
+    /// Anything else reserved is released before a new one is asked for,
+    /// which costs nothing but a re-reservation if that language comes back.
+    static func makeRoom(for locale: Locale) async {
+        let reserved = await AssetInventory.reservedLocales
+        guard reserved.count >= AssetInventory.maximumReservedLocales,
+              !reserved.contains(locale) else { return }
+        for other in reserved where other != locale {
+            _ = await AssetInventory.release(reservedLocale: other)
+        }
     }
 
     /// The supported locale for a language code, preferring the device's own

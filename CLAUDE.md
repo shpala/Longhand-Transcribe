@@ -230,7 +230,11 @@ debugging, pull and read these instead of guessing from the UI.
   skips work or trips an illegal transition. Stage bookkeeping uses `advance`,
   which no-ops rather than failing a job whose work succeeded.
 - **Pipeline runs are serialized** through `JobLibraryModel.pipelineGate`: each
-  one loads a 626 MB (or 947 MB) model, so N concurrent jobs is a jetsam.
+  one needs the 626 MB (or 947 MB) model, so N concurrent jobs is a jetsam.
+  `WhisperKitEngine.warmModel` keeps one loaded instance for five idle
+  minutes and loads it early when a take in a Whisper language starts; it is
+  released on memory pressure, in the background, under a hold and on weight
+  deletion, and the gate is what keeps two jobs from sharing it at once.
 - **User-owned `JobRecord` fields** (`title`, `pausedByUser`) are merged from
   disk by `JobPipeline.persist`: a run holds its record in memory for minutes
   and would otherwise clobber a rename or a pause made while it worked.

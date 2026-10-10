@@ -91,9 +91,14 @@ struct MacTranscriptView: View {
                 ContentUnavailableView {
                     Label("No speech detected", systemImage: "waveform.slash")
                 } description: {
-                    NoSpeechDiagnostics(degradations: record?.degradations ?? [],
-                                        appliedGainDb: screen.appliedGainDb,
-                                        inputLevelDbFS: screen.inputLevelDbFS)
+                    VStack(spacing: 12) {
+                        NoSpeechDiagnostics(degradations: record?.degradations ?? [],
+                                            appliedGainDb: screen.appliedGainDb,
+                                            inputLevelDbFS: screen.inputLevelDbFS)
+                        if let record, record.stageSeconds != nil {
+                            ProcessingTimings(record: record, asrModel: transcript.models.asr)
+                        }
+                    }
                 } actions: {
                     if player.isLoaded {
                         Button("Play the Recording") { player.toggle() }

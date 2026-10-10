@@ -1,4 +1,6 @@
 import Foundation
+import OSLog
+import Speech
 import LonghandKit
 
 /// User-selectable Whisper weights (§6.1). Turbo is the compressed default;
@@ -104,6 +106,89 @@ public nonisolated final class WhisperKitEngine: SpeechTranscribing {
         self.variant = variant
     }
 
+    // MARK: - The warm model
+
+    /// One loaded model, kept between the jobs that need it. §7.3 asked for
+    /// no models resident between stages, and the first build obeyed with a
+    /// fresh instance per job, which cost every job the staging of 626 MB
+    /// onto the Neural Engine. The deviation is bounded: one model at a time,
+    /// released after five idle minutes, on memory pressure, when the app
+    /// leaves the foreground, under a processing hold, and when the weights
+    /// are deleted. The pipeline gate still serializes the jobs that use it.
+    public static let warmModel: WarmInstanceCache<WhisperModelVariant, WarmWhisper> = {
+        let cache = WarmInstanceCache<WhisperModelVariant, WarmWhisper>(idleWindow: .seconds(300))
+        cache.onRelease = { warm in
+            await warm.whisper.unloadModels()
+            logger.info("released the speech model")
+        }
+        return cache
+    }()
+
+    /// `WhisperKit` is not Sendable; the cache hands it between tasks, and
+    /// the pipeline gate is what keeps two jobs from using it at once.
+    public final class WarmWhisper: @unchecked Sendable {
+        let whisper: WhisperKit
+        init(_ whisper: WhisperKit) { self.whisper = whisper }
+    }
+
+    private static let logger = Logger(subsystem: "com.shpala.Longhand", category: "whisper-model")
+
+    /// The system's own word on memory, on every platform: drops the model
+    /// before the kernel drops the process.
+    private static let memoryPressure: DispatchSourceMemoryPressure = {
+        let source = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: .global())
+        source.setEventHandler {
+            logger.warning("memory pressure; releasing the speech model")
+            Task { await warmModel.release() }
+        }
+        source.resume()
+        return source
+    }()
+
+    /// Whether a take under the saved transcription default will need this
+    /// engine: the mixed-language setting always does, and so does any
+    /// language Apple's recognizer does not cover.
+    public static func isNeeded(forLanguageSetting setting: String) async -> Bool {
+        if setting == JobPipeline.autoDetectLanguage { return true }
+        let target = setting == TranscriptionLanguages.systemSentinel
+            ? Locale.current.language
+            : Locale(identifier: setting).language
+        guard let code = target.languageCode?.identifier else { return false }
+        let supported = await SpeechTranscriber.supportedLocales
+        return AppleSpeechEngine.resolveLocale(languageCode: code, in: supported) == nil
+    }
+
+    /// Starts loading the model a take will need, so the transcription that
+    /// follows it starts at once. Only when the weights are already on disk
+    /// (a download is the §4.2.3(ii) question, never a side effect of
+    /// pressing record), and never under a processing hold.
+    public static func prewarm(variant: WhisperModelVariant, forLanguageSetting setting: String) {
+        Task {
+            guard ProcessingHold.current() == nil else { return }
+            guard await isNeeded(forLanguageSetting: setting) else { return }
+            let engine = WhisperKitEngine(variant: variant)
+            guard engine.modelLikelyDownloaded() else {
+                logger.info("no prewarm: the \(variant.rawValue, privacy: .public) weights are not downloaded")
+                return
+            }
+            _ = memoryPressure
+            logger.info("prewarming \(variant.rawValue, privacy: .public) for a take")
+            warmModel.prewarm(variant) { WarmWhisper(try await engine.freshLoad(progress: { _ in })) }
+        }
+    }
+
+    /// Drops the warm model now: a processing hold began, or the host wants
+    /// the memory back.
+    public static func releaseWarmModel() async {
+        await warmModel.release()
+    }
+
+    /// Foreground keeps the model; background does not. A job that runs on
+    /// in the background still gets its model, it is just not kept after.
+    public static func setKeepsWarmModel(_ value: Bool) async {
+        await warmModel.setRetaining(value)
+    }
+
     /// Long-file threshold above which incremental loading is mandatory (§6.2).
     public static let incrementalLoadingThreshold: TimeInterval = 600
 
@@ -133,6 +218,22 @@ public nonisolated final class WhisperKitEngine: SpeechTranscribing {
     /// load is purged and re-asked for rather than silently re-fetched: a
     /// repair costs the same 626 MB the §4.2.3(ii) gate exists to disclose.
     private func loadModel(progress: @escaping ProgressSink) async throws -> WhisperKit {
+        _ = Self.memoryPressure
+        if Self.warmModel.warmKey == variant {
+            Self.logger.info("using the warm \(self.variant.rawValue, privacy: .public) model")
+        } else if Self.warmModel.isLoading {
+            // A prewarm under way: the job waits on it and says so.
+            progress(PipelineProgress(stage: .loadingModel, fraction: 0,
+                                      isFirstModelLoad: !Self.hasLoadedBefore(variant)))
+        }
+        return try await Self.warmModel.instance(for: variant) {
+            WarmWhisper(try await self.freshLoad(progress: progress))
+        }.whisper
+    }
+
+    /// Loads from disk, or downloads first; the cache calls this when it has
+    /// nothing for the variant.
+    private func freshLoad(progress: @escaping ProgressSink) async throws -> WhisperKit {
         ModelStaging.excludeFromBackup()
         guard modelLikelyDownloaded() else {
             return try await downloadAndLoadModel(progress: progress)
@@ -197,7 +298,8 @@ public nonisolated final class WhisperKitEngine: SpeechTranscribing {
 
     public func transcribe(_ input: AudioAsset, language: Locale.Language?,
                     progress: @escaping ProgressSink) async throws -> ASRResult {
-        // A fresh instance per job keeps no models resident between stages (§7.3).
+        // Warm across jobs for a few minutes (see `warmModel`); the gate
+        // keeps two jobs from ever holding it at once.
         let whisper = try await loadModel(progress: progress)
 
         let languageCode = language?.languageCode?.identifier
@@ -253,7 +355,7 @@ public nonisolated final class WhisperKitEngine: SpeechTranscribing {
         for result in results {
             for segment in result.segments {
                 let text = Self.stripSpecialTokens(segment.text)
-                let words: [ASRWord] = (segment.words ?? []).compactMap { timing in
+                let words: [ASRWord] = (segment.words ?? []).compactMap { (timing) -> ASRWord? in
                     let wordText = timing.word.trimmingCharacters(in: .whitespaces)
                     guard !wordText.isEmpty else { return nil }
                     return ASRWord(text: wordText,
@@ -395,6 +497,9 @@ public nonisolated final class WhisperKitEngine: SpeechTranscribing {
     /// on `runningJobs` instead.
     @discardableResult
     public static func delete(_ variant: WhisperModelVariant) -> Int64 {
+        if warmModel.warmKey == variant {
+            Task { await warmModel.release() }
+        }
         let asset = asset(for: variant)
         let reclaimed = asset.bytesOnDisk
         asset.purge()
@@ -453,6 +558,11 @@ public nonisolated final class WhisperKitEngine: SpeechTranscribing {
 
     public func supports(language: Locale.Language) -> Bool { false }
     public var supportsLanguageAutoDetection: Bool { false }
+
+    public static func isNeeded(forLanguageSetting setting: String) async -> Bool { false }
+    public static func prewarm(variant: WhisperModelVariant, forLanguageSetting setting: String) {}
+    public static func releaseWarmModel() async {}
+    public static func setKeepsWarmModel(_ value: Bool) async {}
 
     public func transcribe(_ input: AudioAsset, language: Locale.Language?,
                     progress: @escaping ProgressSink) async throws -> ASRResult {

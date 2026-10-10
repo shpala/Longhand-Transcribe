@@ -11,6 +11,8 @@ import LonghandEngines
 @main
 struct LonghandApp: App {
     init() {
+        // Before any view reads the setting it overrides, or restores.
+        UITestSupport.applyDefaultLanguageOverride()
         // Must happen before launch completes (BGTaskScheduler contract).
         BackgroundExecutionCoordinator.shared.registerLaunchHandler()
         // Early: the system can launch this app in the background purely to

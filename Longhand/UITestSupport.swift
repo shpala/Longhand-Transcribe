@@ -24,8 +24,32 @@ nonisolated enum UITestSupport {
     /// A device test cannot reset the owner's settings, and the owner's
     /// default may well be a language with no preview.
     static var livePreviewLanguageOverride: String? {
+        argument(after: "--uitest-live-language")
+    }
+
+    /// `--uitest-default-language <code>`: the saved transcription default,
+    /// for this launch and the jobs it starts, with the owner's own value
+    /// put back by the next launch that does not pass it. A device test
+    /// cannot reset the owner's settings, and the prewarm it exercises reads
+    /// the default at record time.
+    static func applyDefaultLanguageOverride() {
+        let defaults = UserDefaults.standard
+        let key = "defaultImportLanguage"
+        let restoreKey = "uitestRestore.defaultImportLanguage"
+        if let override = argument(after: "--uitest-default-language") {
+            if defaults.object(forKey: restoreKey) == nil {
+                defaults.set(defaults.string(forKey: key) ?? "system", forKey: restoreKey)
+            }
+            defaults.set(override, forKey: key)
+        } else if let saved = defaults.string(forKey: restoreKey) {
+            defaults.set(saved, forKey: key)
+            defaults.removeObject(forKey: restoreKey)
+        }
+    }
+
+    private static func argument(after flag: String) -> String? {
         let args = ProcessInfo.processInfo.arguments
-        guard let index = args.firstIndex(of: "--uitest-live-language"), index + 1 < args.count else { return nil }
+        guard let index = args.firstIndex(of: flag), index + 1 < args.count else { return nil }
         return args[index + 1]
     }
 }

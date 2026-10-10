@@ -118,6 +118,7 @@ speaker names confirmed and a few turns corrected, settles both at once.
 | Calendar titles (addition) | `LonghandEngines/Sources/LonghandEngines/CalendarContext.swift`, `ImportMetadata.calendarEvent`, rename sheets | off by default; the event in progress names the take and its attendees are offered when naming a speaker; metadata.json only, never exported; iOS only |
 | Live preview while recording (addition) | `LonghandEngines/Sources/LonghandEngines/LiveTranscriber.swift` (+`LiveTranscriptView`), `LonghandKit/.../Models/LiveTranscriptText.swift`, `TakeCapture.onBuffer`, `MacPreviewInput` | Apple's `SpeechTranscriber` streaming with volatile results, for its languages only; a preview, never a checkpoint, overlay or export; suspended in the background and while paused; see "Words as they are said, and names from the summary" below |
 | Generated titles (addition) | `JobRecord.titleOrigin`, `TranscriptSummary.title`, `JobStore.applyGeneratedTitle`, `TranscriptSummarizer.SummaryDraft.title` | the summary's title replaces a date-stamp placeholder and nothing a person, a file or a calendar named; a rename ends it; toggle under Summaries |
+| Warm speech model (addition) | `LonghandKit/.../Jobs/WarmInstanceCache.swift`, `WhisperKitEngine.warmModel`, `prewarm(variant:forLanguageSetting:)` | one Whisper instance kept five idle minutes between jobs and loaded during a take that will need it; released on memory pressure, in the background, under a hold and on weight deletion; a bounded deviation from §7.3, see below |
 | Stop notification (addition) | `Longhand/Audio/TakeNotifier.swift` | a time-sensitive local notification when a take is interrupted or halts with the app not in front |
 | Low Power and thermal hold (addition) | `LonghandEngines/Sources/LonghandEngines/ProcessingHold.swift`, `JobLibraryModel.apply(hold:)` | jobs stop at the next checkpoint and resume when the condition lifts; rows say which |
 | Per-word tap-to-seek (addition) | `LonghandEngines/Sources/LonghandEngines/WordTapText.swift` (`WordFrameRenderer`, `WordFrames`) | words stay in one `Text` so SwiftUI keeps bidi reordering intact; the renderer reports each word's frame and also draws the active word's wash |
@@ -1735,3 +1736,63 @@ memory does not revert a generated name. Settings: "Name recordings from the
 summary", under the summary toggle, on by default, both shells.
 `SummaryTitleModelTests` asks the real model on a Mac with Apple
 Intelligence and skips elsewhere.
+
+## The speech model stays warm (10 Oct 2026)
+
+§7.3 asked for no models resident between stages, and the first build obeyed
+with a fresh `WhisperKit` per job. The cost was visible on every Hebrew or
+Russian take: the phone's own record shows 2:26 for the very first load, and
+tens of seconds of Neural Engine staging on every load after, before a
+single word is decoded. Apple's languages never show this because their
+model is a fraction of the size and lives warm in a system process.
+
+`WarmInstanceCache` (LonghandKit, tested without a model) is the
+bookkeeping: one instance at a time, keyed by variant, with an idle window,
+an in-flight load that later callers join, `prewarm`, `release`, and a
+retaining switch. `WhisperKitEngine.warmModel` is the one instance of it,
+holding a `WarmWhisper` box (the class is not Sendable; the pipeline gate is
+what keeps two jobs from using it at once). `loadModel` goes through the
+cache; the old body is `freshLoad`.
+
+When it loads early: `WhisperKitEngine.prewarm(variant:forLanguageSetting:)`
+is called by `RecorderService.start` and by `MacRecordSheet` when a take
+starts, and it loads only if the saved transcription default needs Whisper
+(`isNeeded(forLanguageSetting:)`: the mixed-language setting, or a language
+Apple's recognizer does not cover, resolved through the same
+`AppleSpeechEngine.resolveLocale` the router uses), only if the weights are
+already on disk (a download stays the §4.2.3(ii) question, never a side
+effect of pressing record), and never under a `ProcessingHold`. A job that
+arrives while the prewarm is still loading reports "Loading speech model…"
+and joins it rather than loading again.
+
+When it lets go: five minutes after its last use or load; on the system's
+memory pressure source (`DispatchSource.makeMemoryPressureSource`, both
+platforms); when the iOS scene leaves `.active` (`setKeepsWarmModel(false)`:
+a job running on in the background still gets its model, it is just not
+kept after, and `.active` turns retention back on); when a hold begins
+(`JobLibraryModel.apply(hold:)`); and when `WhisperKitEngine.delete` purges
+the weights it was built from. A different variant on the way in drops the
+old instance before the new one loads, so two never overlap. The deviation
+from §7.3 is therefore bounded to one model, in the foreground, for five
+idle minutes, which is what makes a second take or an import right after
+the first start transcribing at once.
+
+What this does not change: Whisper still cannot stream, so the live preview
+stays Apple-only; a take started under Low Power Mode gets neither the
+preview nor the prewarm, by the same rule that holds the pipeline.
+
+**Five locales, and analyzers that must finish (10 Oct 2026).** The first
+device run of the warm-model check failed its take three times with
+"Required model asset is not installed: Apple speech model for en_NZ
+(OS-managed download failed: Too many allocated locales, 5 maximum)". Two
+things were true at once. `AssetInventory` keeps a per-app list of reserved
+locales, five at most, and `AppleSpeechEngine.makeRoom(for:)` now releases
+the others before a new one is asked for, which costs a re-reservation if
+that language comes back and nothing else. And an analyzer that is cancelled
+or thrown out of mid-sequence keeps its allocation until it is finished:
+`AppleSpeechEngine.transcribe` now calls `cancelAndFinishNow()` on every
+error path, and `LiveTranscriber.finish()` bounds `finalizeAndFinishThroughEndOfInput`
+to five seconds and cancels past that, dropping the analyzer either way. The
+no-speech screen on both shells now shows the processing timings card as the
+transcript screen does, since "why did a silent take take three minutes" is a
+fair question and the test that found the above needed it answered.

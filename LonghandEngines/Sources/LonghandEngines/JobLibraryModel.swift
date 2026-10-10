@@ -167,6 +167,8 @@ public final class JobLibraryModel {
         processingHold = hold
         if hold != nil {
             for task in runTasks.values { task.cancel() }
+            // The warm model is exactly the memory and heat a hold is about.
+            Task { await WhisperKitEngine.releaseWarmModel() }
         } else {
             resumeUnfinished()
         }

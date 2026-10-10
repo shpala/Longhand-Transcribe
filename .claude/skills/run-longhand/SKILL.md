@@ -478,6 +478,10 @@ Useless for agents; nothing to observe programmatically.
   battery crossing 20% and the owner accepting the Low Power prompt, not a
   regression. The test launches with `--uitest-live-language en` because the
   owner's saved default is Russian, which has no preview.
+  `LonghandUITests/WarmModelUITests` is device-only for the opposite reason:
+  it needs a Whisper default (the owner's Russian) and the weights on the
+  phone, records 75 s so the model loads beside the take, and checks the
+  job's timing card lists no "Loading model" row. Same Low Power skip.
 - **Simulators have no Apple speech and no diarization.**
   `SpeechTranscriber.supportedLocales` is empty, so ASR routes to WhisperKit
   (626 MB download into the sim container on first use, ~2 min). SpeakerKit
@@ -580,3 +584,12 @@ Useless for agents; nothing to observe programmatically.
   more than once; the per-utterance completion guard must stay.
 - Test screenshots: export with `$D attachments`, then map names via
   `manifest.json` (`suggestedHumanReadableName` → `exportedFileName`).
+- **"Too many allocated locales, 5 maximum"** in a job's error is the Speech
+  framework's per-app cap on reserved locales plus analyzers left unfinished.
+  Both are handled (`AppleSpeechEngine.makeRoom`, finish-on-every-path); if it
+  comes back, look for a new code path that creates a `SpeechTranscriber` and
+  does not reach `finalize`/`cancelAndFinishNow`.
+- **Test takes left in the owner's library** (a device test that failed before
+  its cleanup) are removed by
+  `$D uitest LonghandUITests/WarmModelUITests/testDeleteStampedTakesFromToday device`,
+  which deletes rows still titled with today's date stamp and nothing named.

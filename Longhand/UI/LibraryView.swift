@@ -275,6 +275,9 @@ struct LibraryView: View {
         // Jobs the system stopped are picked up again here, not only on a
         // cold launch: the row says they will resume, so they do.
         .onChange(of: scenePhase) { _, phase in
+            // The warm speech model is a gigabyte the system reclaims from a
+            // background app by killing it; it is kept in the foreground only.
+            Task { await WhisperKitEngine.setKeepsWarmModel(phase == .active) }
             guard phase == .active else { return }
             model.refresh()
             model.resumeUnfinished()

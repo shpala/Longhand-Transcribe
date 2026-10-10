@@ -350,9 +350,16 @@ struct TranscriptView: View {
         ContentUnavailableView {
             Label("No speech detected", systemImage: "waveform.slash")
         } description: {
-            NoSpeechDiagnostics(degradations: record?.degradations ?? [],
-                                appliedGainDb: screen.appliedGainDb,
-                                inputLevelDbFS: screen.inputLevelDbFS)
+            VStack(spacing: 12) {
+                NoSpeechDiagnostics(degradations: record?.degradations ?? [],
+                                    appliedGainDb: screen.appliedGainDb,
+                                    inputLevelDbFS: screen.inputLevelDbFS)
+                // "Why did a silent take take three minutes" is a fair
+                // question, and the answer is the same card as always.
+                if let record, record.stageSeconds != nil {
+                    ProcessingTimings(record: record, asrModel: transcript?.models.asr ?? "")
+                }
+            }
         } actions: {
             if player.isLoaded {
                 Button("Play the Recording") { player.toggle() }
